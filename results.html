@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="ai-service.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 24px; }
@@ -191,8 +192,8 @@
             }
         }
 
-        // Generate itinerary
-        function generateItinerary() {
+        // Generate itinerary with AI
+        async function generateItinerary() {
             parseURLParams();
             
             const startDate = new Date(formData.startDate);
@@ -200,6 +201,125 @@
             const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
             const totalBudget = parseInt(formData.budget) || 5000;
             
+            // Show loading state
+            document.getElementById('tripTitle').textContent = 'Generating Your Perfect Itinerary...';
+            document.getElementById('tripDetails').innerHTML = '<div class="flex items-center space-x-2"><div class="loading-spinner"></div><span>AI is working its magic...</span></div>';
+            
+            try {
+                // Call AI API
+                const response = await fetch('/api/generate-itinerary', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('AI service unavailable');
+                }
+                
+                const aiItinerary = await response.json();
+                displayAIItinerary(aiItinerary, duration, totalBudget, startDate);
+                
+            } catch (error) {
+                console.log('AI service not available, using enhanced mock data');
+                // Fallback to enhanced mock data
+                generateEnhancedMockItinerary(duration, totalBudget, startDate);
+        }
+        
+        // Display AI-generated itinerary
+        function displayAIItinerary(aiItinerary, duration, totalBudget, startDate) {
+            // Update trip title and details
+            document.getElementById('tripTitle').textContent = `${aiItinerary.summary.destination} Adventure`;
+            
+            const detailsHTML = `
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="calendar" class="h-4 w-4"></i>
+                    <span>${aiItinerary.summary.duration} days</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="users" class="h-4 w-4"></i>
+                    <span>${formData.travelers} travelers</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="dollar-sign" class="h-4 w-4"></i>
+                    <span>$${aiItinerary.summary.totalBudget.toLocaleString()}</span>
+                </div>
+            `;
+            document.getElementById('tripDetails').innerHTML = detailsHTML;
+            
+            // Display AI budget breakdown
+            if (aiItinerary.summary.budgetBreakdown) {
+                const budgetBreakdown = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Flights</span>
+                        <span class="font-semibold">$${aiItinerary.summary.budgetBreakdown.flights.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Accommodation</span>
+                        <span class="font-semibold">$${aiItinerary.summary.budgetBreakdown.accommodation.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Food</span>
+                        <span class="font-semibold">$${aiItinerary.summary.budgetBreakdown.food.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Activities</span>
+                        <span class="font-semibold">$${aiItinerary.summary.budgetBreakdown.activities.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Transportation</span>
+                        <span class="font-semibold">$${aiItinerary.summary.budgetBreakdown.transportation.toLocaleString()}</span>
+                    </div>
+                    <div class="border-t pt-3 flex justify-between items-center font-bold">
+                        <span>Total</span>
+                        <span>$${aiItinerary.summary.totalBudget.toLocaleString()}</span>
+                    </div>
+                `;
+                document.getElementById('budgetBreakdown').innerHTML = budgetBreakdown;
+            }
+            
+            // Display AI flight info
+            if (aiItinerary.flights) {
+                const flightInfo = `
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">Outbound</div>
+                        <div class="text-sm text-gray-600">${aiItinerary.flights.outbound.airline} - $${aiItinerary.flights.outbound.price.toLocaleString()}</div>
+                        <div class="text-xs text-gray-500">${aiItinerary.flights.outbound.duration}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">Return</div>
+                        <div class="text-sm text-gray-600">${aiItinerary.flights.return.airline} - $${aiItinerary.flights.return.price.toLocaleString()}</div>
+                        <div class="text-xs text-gray-500">${aiItinerary.flights.return.duration}</div>
+                    </div>
+                `;
+                document.getElementById('flightInfo').innerHTML = flightInfo;
+            }
+            
+            // Generate day navigation
+            let dayNavHTML = '';
+            for (let i = 1; i <= duration; i++) {
+                const dayDate = new Date(startDate.getTime() + (i - 1) * 24 * 60 * 60 * 1000);
+                const dateStr = dayDate.toISOString().split('T')[0];
+                const isActive = i === currentDay ? 'bg-blue-100 text-blue-700 border-blue-200' : 'hover:bg-gray-100 text-gray-700';
+                
+                dayNavHTML += `
+                    <button onclick="showDay(${i})" class="w-full text-left p-3 rounded-lg transition-colors ${isActive}">
+                        <div class="font-medium">Day ${i}</div>
+                        <div class="text-sm opacity-75">${dateStr}</div>
+                        <div class="text-xs opacity-60">${aiItinerary.dailyItinerary?.[i-1]?.theme || getThemeForDay(i, duration)}</div>
+                    </button>
+                `;
+            }
+            document.getElementById('dayNavigation').innerHTML = dayNavHTML;
+            
+            // Generate AI itinerary content
+            generateAIItineraryContent(aiItinerary, duration, totalBudget, startDate);
+        }
+        
+        // Enhanced mock itinerary when AI is not available
+        function generateEnhancedMockItinerary(duration, totalBudget, startDate) {
             // Update trip title and details
             document.getElementById('tripTitle').textContent = `${formData.destination} Adventure`;
             
@@ -493,6 +613,99 @@
 
         function exportToPDF() {
             alert('PDF export feature coming soon! For now, you can print this page using Ctrl+P (Cmd+P on Mac)');
+        }
+
+        // Generate AI itinerary content
+        function generateAIItineraryContent(aiItinerary, duration, totalBudget, startDate) {
+            let itineraryHTML = '';
+            
+            for (let i = 0; i < duration; i++) {
+                const day = aiItinerary.dailyItinerary[i];
+                const isVisible = i === currentDay - 1 ? '' : 'hidden';
+                
+                itineraryHTML += `
+                    <div id="day${i + 1}" class="day-content ${isVisible}">
+                        <div class="card">
+                            <div class="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-gray-900">Day ${day.day}</h2>
+                                    <p class="text-gray-600">${day.date} • ${day.theme}</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm text-gray-500">Daily Budget</div>
+                                    <div class="font-semibold">$${Math.round(totalBudget * 0.15 / duration).toLocaleString()}</div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i data-lucide="camera" class="h-5 w-5 mr-2"></i>
+                                    Activities
+                                </h3>
+                                
+                                ${day.activities.map(activity => `
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="flex items-start justify-between">
+                                            <div class="flex-1">
+                                                <div class="flex items-center space-x-3 mb-2">
+                                                    <div class="bg-blue-100 text-blue-600 px-2 py-1 rounded text-sm font-medium">${activity.time}</div>
+                                                    <h4 class="font-semibold text-gray-900">${activity.activity}</h4>
+                                                </div>
+                                                <div class="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                                    <div class="flex items-center space-x-1">
+                                                        <i data-lucide="map-pin" class="h-4 w-4"></i>
+                                                        <span>${activity.location}</span>
+                                                    </div>
+                                                    <div class="flex items-center space-x-1">
+                                                        <i data-lucide="clock" class="h-4 w-4"></i>
+                                                        <span>${activity.duration}</span>
+                                                    </div>
+                                                </div>
+                                                <p class="text-sm text-gray-600">${activity.notes}</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="font-semibold text-gray-900">$${activity.cost.toLocaleString()}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            <div class="mt-6 space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i data-lucide="utensils" class="h-5 w-5 mr-2"></i>
+                                    Meals
+                                </h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="font-semibold text-gray-900 mb-2">Breakfast</div>
+                                        <div class="text-sm text-gray-600 mb-1">${day.meals.breakfast.restaurant}</div>
+                                        <div class="text-sm text-gray-500 mb-2">${day.meals.breakfast.cuisine} • ${day.meals.breakfast.location}</div>
+                                        <div class="font-semibold text-gray-900">$${day.meals.breakfast.cost.toLocaleString()}</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="font-semibold text-gray-900 mb-2">Lunch</div>
+                                        <div class="text-sm text-gray-600 mb-1">${day.meals.lunch.restaurant}</div>
+                                        <div class="text-sm text-gray-500 mb-2">${day.meals.lunch.cuisine} • ${day.meals.lunch.location}</div>
+                                        <div class="font-semibold text-gray-900">$${day.meals.lunch.cost.toLocaleString()}</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="font-semibold text-gray-900 mb-2">Dinner</div>
+                                        <div class="text-sm text-gray-600 mb-1">${day.meals.dinner.restaurant}</div>
+                                        <div class="text-sm text-gray-500 mb-2">${day.meals.dinner.cuisine} • ${day.meals.dinner.location}</div>
+                                        <div class="font-semibold text-gray-900">$${day.meals.dinner.cost.toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('itineraryContent').innerHTML = itineraryHTML;
+            
+            // Reinitialize Lucide icons for new content
+            lucide.createIcons();
         }
 
         // Initialize the page
