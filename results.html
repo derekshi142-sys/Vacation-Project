@@ -205,27 +205,187 @@
             document.getElementById('tripTitle').textContent = 'Generating Your Perfect Itinerary...';
             document.getElementById('tripDetails').innerHTML = '<div class="flex items-center space-x-2"><div class="loading-spinner"></div><span>AI is working its magic...</span></div>';
             
-            try {
-                // Call AI API
-                const response = await fetch('/api/generate-itinerary', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
-                });
+            // Simulate AI processing
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Generate AI itinerary directly
+            const aiItinerary = generateAIItineraryData(formData, duration, totalBudget, startDate);
+            displayAIItinerary(aiItinerary, duration, totalBudget, startDate);
+        }
+        
+        // Generate AI itinerary data
+        function generateAIItineraryData(formData, duration, totalBudget, startDate) {
+            const destination = formData.destination.toLowerCase();
+            
+            // Destination-specific data
+            const destinations = {
+                'paris': {
+                    activities: ['Louvre Museum', 'Eiffel Tower', 'Notre-Dame', 'Champs-Élysées', 'Montmartre', 'Seine River Cruise'],
+                    restaurants: ['Le Comptoir du Relais', 'L\'As du Fallafel', 'Bistrot Paul Bert', 'Le Procope', 'Café de Flore'],
+                    themes: ['Romantic Paris', 'Art & Culture', 'Food & Wine', 'Historic Paris', 'Fashion & Shopping']
+                },
+                'tokyo': {
+                    activities: ['Senso-ji Temple', 'Tokyo Skytree', 'Shibuya Crossing', 'Tsukiji Fish Market', 'Meiji Shrine', 'Harajuku District'],
+                    restaurants: ['Sukiyabashi Jiro', 'Narisawa', 'Tsuta', 'Nakamura', 'Sushi Dai'],
+                    themes: ['Modern Tokyo', 'Traditional Culture', 'Food Adventure', 'Shopping & Fashion', 'Technology & Innovation']
+                },
+                'new york': {
+                    activities: ['Central Park', 'Statue of Liberty', 'Times Square', 'Brooklyn Bridge', 'High Line', 'Metropolitan Museum'],
+                    restaurants: ['Le Bernardin', 'Eleven Madison Park', 'Peter Luger', 'Katz\'s Delicatessen', 'Joe\'s Pizza'],
+                    themes: ['City That Never Sleeps', 'Art & Culture', 'Food Scene', 'Broadway & Entertainment', 'Shopping & Fashion']
+                }
+            };
+            
+            const destData = destinations[destination] || {
+                activities: ['City Walking Tour', 'Local Market Visit', 'Historic District', 'Scenic Viewpoint', 'Cultural Center'],
+                restaurants: ['Local Bistro', 'Traditional Restaurant', 'Popular Cafe', 'Fine Dining', 'Street Food'],
+                themes: ['City Discovery', 'Cultural Experience', 'Local Life', 'Historic Tour', 'Modern Exploration']
+            };
+            
+            // Calculate budget breakdown based on travel style
+            const budgetMultipliers = {
+                budget: { flights: 0.25, accommodation: 0.20, food: 0.20, activities: 0.20, transportation: 0.15 },
+                balanced: { flights: 0.30, accommodation: 0.25, food: 0.25, activities: 0.15, transportation: 0.05 },
+                luxury: { flights: 0.20, accommodation: 0.40, food: 0.25, activities: 0.10, transportation: 0.05 }
+            };
+            
+            const style = budgetMultipliers[formData.travelStyle] || budgetMultipliers.balanced;
+            const budgetBreakdown = {
+                flights: Math.round(totalBudget * style.flights),
+                accommodation: Math.round(totalBudget * style.accommodation),
+                food: Math.round(totalBudget * style.food),
+                activities: Math.round(totalBudget * style.activities),
+                transportation: Math.round(totalBudget * style.transportation)
+            };
+            
+            // Generate daily itinerary
+            const dailyItinerary = [];
+            for (let i = 0; i < duration; i++) {
+                const dayDate = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+                const theme = destData.themes[i % destData.themes.length];
                 
-                if (!response.ok) {
-                    throw new Error('AI service unavailable');
+                // Select activities based on interests
+                let morningActivity = destData.activities[Math.floor(Math.random() * destData.activities.length)];
+                let afternoonActivity = destData.activities[Math.floor(Math.random() * destData.activities.length)];
+                
+                if (formData.interests && formData.interests.length > 0) {
+                    const interestActivities = {
+                        culture: destData.activities.filter(a => a.includes('Museum') || a.includes('Temple') || a.includes('Shrine')),
+                        food: destData.activities.filter(a => a.includes('Market') || a.includes('Food')),
+                        nature: destData.activities.filter(a => a.includes('Park') || a.includes('Garden')),
+                        adventure: destData.activities.filter(a => a.includes('Bridge') || a.includes('Tower'))
+                    };
+                    
+                    for (const interest of formData.interests) {
+                        if (interestActivities[interest] && interestActivities[interest].length > 0) {
+                            morningActivity = interestActivities[interest][Math.floor(Math.random() * interestActivities[interest].length)];
+                            break;
+                        }
+                    }
                 }
                 
-                const aiItinerary = await response.json();
-                displayAIItinerary(aiItinerary, duration, totalBudget, startDate);
+                // Meal costs based on travel style
+                const mealCosts = {
+                    budget: { breakfast: 0.02, lunch: 0.03, dinner: 0.05 },
+                    balanced: { breakfast: 0.02, lunch: 0.04, dinner: 0.06 },
+                    luxury: { breakfast: 0.03, lunch: 0.05, dinner: 0.10 }
+                };
+                const costs = mealCosts[formData.travelStyle] || mealCosts.balanced;
                 
-            } catch (error) {
-                console.log('AI service not available, using enhanced mock data');
-                // Fallback to enhanced mock data
-                generateEnhancedMockItinerary(duration, totalBudget, startDate);
+                dailyItinerary.push({
+                    day: i + 1,
+                    date: dayDate.toISOString().split('T')[0],
+                    theme: theme,
+                    activities: [
+                        {
+                            time: '9:00 AM',
+                            activity: morningActivity,
+                            location: `${formData.destination} City Center`,
+                            cost: Math.round(totalBudget * 0.05),
+                            duration: '2-3 hours',
+                            notes: 'Start your day with this must-see attraction'
+                        },
+                        {
+                            time: '2:00 PM',
+                            activity: afternoonActivity,
+                            location: `${formData.destination} Main District`,
+                            cost: Math.round(totalBudget * 0.07),
+                            duration: '3-4 hours',
+                            notes: 'Afternoon highlight activity'
+                        }
+                    ],
+                    meals: {
+                        breakfast: {
+                            restaurant: 'Local Morning Cafe',
+                            cuisine: 'Continental',
+                            cost: Math.round(totalBudget * costs.breakfast),
+                            location: 'Near hotel'
+                        },
+                        lunch: {
+                            restaurant: destData.restaurants[Math.floor(Math.random() * destData.restaurants.length)],
+                            cuisine: 'Local',
+                            cost: Math.round(totalBudget * costs.lunch),
+                            location: 'City center'
+                        },
+                        dinner: {
+                            restaurant: destData.restaurants[Math.floor(Math.random() * destData.restaurants.length)],
+                            cuisine: 'Fine Dining',
+                            cost: Math.round(totalBudget * costs.dinner),
+                            location: 'Entertainment district'
+                        }
+                    },
+                    transportation: {
+                        method: formData.travelStyle === 'luxury' ? 'Private car' : 'Public transport',
+                        cost: formData.travelStyle === 'luxury' ? Math.round(totalBudget * 0.02) : Math.round(totalBudget * 0.005),
+                        notes: 'Daily transport within city'
+                    }
+                });
+            }
+            
+            return {
+                summary: {
+                    destination: formData.destination,
+                    duration: duration,
+                    totalBudget: totalBudget,
+                    budgetBreakdown: budgetBreakdown
+                },
+                flights: {
+                    outbound: {
+                        airline: ['Delta', 'United', 'American', 'Lufthansa', 'Air France'][Math.floor(Math.random() * 5)],
+                        price: Math.round(totalBudget * 0.15),
+                        duration: destination.includes('paris') ? '8-10 hours' : destination.includes('tokyo') ? '12-14 hours' : '6-8 hours',
+                        notes: 'Book 2-3 months in advance for best prices'
+                    },
+                    return: {
+                        airline: ['Delta', 'United', 'American', 'Lufthansa', 'Air France'][Math.floor(Math.random() * 5)],
+                        price: Math.round(totalBudget * 0.15),
+                        duration: destination.includes('paris') ? '8-10 hours' : destination.includes('tokyo') ? '12-14 hours' : '6-8 hours',
+                        notes: 'Return flight included'
+                    }
+                },
+                accommodation: [{
+                    name: ['City Center Hotel', 'Boutique Hotel', 'Business Hotel'][Math.floor(Math.random() * 3)],
+                    type: formData.accommodationType,
+                    pricePerNight: Math.round((totalBudget * 0.25) / duration),
+                    rating: 4.2 + Math.random() * 0.8,
+                    location: 'City Center',
+                    amenities: ['WiFi', 'Breakfast', 'Gym', 'Pool', 'Spa']
+                }],
+                dailyItinerary: dailyItinerary,
+                tips: [
+                    `Best time to visit ${formData.destination} is during shoulder season for fewer crowds`,
+                    'Book accommodations early for better rates',
+                    'Learn basic local phrases to enhance your experience',
+                    'Keep copies of important documents in separate locations',
+                    'Check visa requirements well in advance',
+                    'Pack weather-appropriate clothing and comfortable walking shoes'
+                ],
+                emergencyInfo: {
+                    embassy: 'Contact your local embassy for assistance',
+                    hospitalNearby: 'Research nearest hospital and medical facilities',
+                    emergencyNumbers: 'Local emergency numbers: 911 (US), 112 (EU), 110 (Japan)'
+                }
+            };
         }
         
         // Display AI-generated itinerary
