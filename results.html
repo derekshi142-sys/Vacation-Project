@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Itinerary - TravelAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 24px; }
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2 cursor-pointer" onclick="window.location.href='index.html'">
+                    <div class="bg-blue-600 p-2 rounded-lg">
+                        <i data-lucide="plane" class="h-6 w-6 text-white"></i>
+                    </div>
+                    <span class="text-xl font-bold text-gray-900">TravelAI</span>
+                </div>
+                
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                    <a href="plan.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Plan Trip</a>
+                    <a href="pricing.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Pricing</a>
+                    <a href="about.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">About</a>
+                </nav>
+                
+                <div class="hidden md:flex items-center space-x-3">
+                    <button onclick="shareItinerary()" class="bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                        Share
+                    </button>
+                    <button onclick="exportToPDF()" class="bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                        Export PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="min-h-screen bg-gray-50 py-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Header -->
+                <div class="card mb-8">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div class="mb-4 md:mb-0">
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2" id="tripTitle">Your Adventure Awaits</h1>
+                            <div class="flex flex-wrap items-center space-x-4 text-gray-600" id="tripDetails">
+                                <!-- Trip details will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-3">
+                            <button onclick="shareItinerary()" class="bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                                Share
+                            </button>
+                            <button onclick="exportToPDF()" class="bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                                Export PDF
+                            </button>
+                            <button onclick="window.location.href='plan.html'" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                                Edit Trip
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    <!-- Sidebar -->
+                    <div class="lg:col-span-1">
+                        <!-- Budget Breakdown -->
+                        <div class="card mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Budget Breakdown</h3>
+                            <div class="space-y-3" id="budgetBreakdown">
+                                <!-- Budget breakdown will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Flight Information -->
+                        <div class="card mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i data-lucide="plane" class="h-5 w-5 mr-2"></i>
+                                Flights
+                            </h3>
+                            <div class="space-y-4" id="flightInfo">
+                                <!-- Flight info will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Day Navigation -->
+                        <div class="card">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Days</h3>
+                            <div class="space-y-2" id="dayNavigation">
+                                <!-- Day navigation will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="lg:col-span-3">
+                        <div id="itineraryContent" class="space-y-6">
+                            <!-- Itinerary content will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upgrade CTA -->
+                <div class="mt-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white text-center">
+                    <h2 class="text-2xl font-bold mb-4">Love Your Itinerary?</h2>
+                    <p class="text-lg mb-6 text-blue-100">Upgrade to book everything automatically and get detailed maps, confirmations, and concierge support</p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button onclick="window.location.href='pricing.html'" class="bg-white text-blue-600 font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-colors">View Pricing</button>
+                        <button class="bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-semibold py-3 px-6 rounded-lg transition-colors">Book This Trip</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-4 cursor-pointer" onclick="window.location.href='index.html'">
+                        <div class="bg-blue-600 p-2 rounded-lg">
+                            <i data-lucide="plane" class="h-6 w-6 text-white"></i>
+                        </div>
+                        <span class="text-xl font-bold">TravelAI</span>
+                    </div>
+                    <p class="text-gray-300 mb-6 max-w-md">Your trip, planned in minutes. Experience stress-free travel with AI-powered itinerary generation that saves you time and money.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="index.html" class="text-gray-300 hover:text-white transition-colors">Home</a></li>
+                        <li><a href="plan.html" class="text-gray-300 hover:text-white transition-colors">Plan Trip</a></li>
+                        <li><a href="pricing.html" class="text-gray-300 hover:text-white transition-colors">Pricing</a></li>
+                        <li><a href="about.html" class="text-gray-300 hover:text-white transition-colors">About</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact</h3>
+                    <p class="text-gray-300">support@travelai.com</p>
+                    <p class="text-gray-300">San Francisco, CA</p>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center">
+                <p class="text-gray-400 text-sm">© 2024 TravelAI. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Global variables
+        let formData = {};
+        let currentDay = 1;
+
+        // Parse URL parameters
+        function parseURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            formData = {};
+            
+            for (const [key, value] of urlParams) {
+                try {
+                    formData[key] = JSON.parse(value);
+                } catch (e) {
+                    formData[key] = value;
+                }
+            }
+        }
+
+        // Generate itinerary
+        function generateItinerary() {
+            parseURLParams();
+            
+            const startDate = new Date(formData.startDate);
+            const endDate = new Date(formData.endDate);
+            const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            const totalBudget = parseInt(formData.budget) || 5000;
+            
+            // Update trip title and details
+            document.getElementById('tripTitle').textContent = `${formData.destination} Adventure`;
+            
+            const detailsHTML = `
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="calendar" class="h-4 w-4"></i>
+                    <span>${duration} days</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="users" class="h-4 w-4"></i>
+                    <span>${formData.travelers} travelers</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="dollar-sign" class="h-4 w-4"></i>
+                    <span>$${totalBudget.toLocaleString()}</span>
+                </div>
+            `;
+            document.getElementById('tripDetails').innerHTML = detailsHTML;
+            
+            // Generate budget breakdown
+            const budgetBreakdown = `
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Flights</span>
+                    <span class="font-semibold">$${Math.round(totalBudget * 0.3).toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Accommodation</span>
+                    <span class="font-semibold">$${Math.round(totalBudget * 0.25).toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Food</span>
+                    <span class="font-semibold">$${Math.round(totalBudget * 0.25).toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Activities</span>
+                    <span class="font-semibold">$${Math.round(totalBudget * 0.15).toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Transportation</span>
+                    <span class="font-semibold">$${Math.round(totalBudget * 0.05).toLocaleString()}</span>
+                </div>
+                <div class="border-t pt-3 flex justify-between items-center font-bold">
+                    <span>Total</span>
+                    <span>$${totalBudget.toLocaleString()}</span>
+                </div>
+            `;
+            document.getElementById('budgetBreakdown').innerHTML = budgetBreakdown;
+            
+            // Generate flight info
+            const flightInfo = `
+                <div>
+                    <div class="text-sm font-medium text-gray-900">Outbound</div>
+                    <div class="text-sm text-gray-600">Major Airline - $${Math.round(totalBudget * 0.15).toLocaleString()}</div>
+                    <div class="text-xs text-gray-500">6-8 hours</div>
+                </div>
+                <div>
+                    <div class="text-sm font-medium text-gray-900">Return</div>
+                    <div class="text-sm text-gray-600">Major Airline - $${Math.round(totalBudget * 0.15).toLocaleString()}</div>
+                    <div class="text-xs text-gray-500">6-8 hours</div>
+                </div>
+            `;
+            document.getElementById('flightInfo').innerHTML = flightInfo;
+            
+            // Generate day navigation
+            let dayNavHTML = '';
+            for (let i = 1; i <= duration; i++) {
+                const dayDate = new Date(startDate.getTime() + (i - 1) * 24 * 60 * 60 * 1000);
+                const dateStr = dayDate.toISOString().split('T')[0];
+                const isActive = i === currentDay ? 'bg-blue-100 text-blue-700 border-blue-200' : 'hover:bg-gray-100 text-gray-700';
+                
+                dayNavHTML += `
+                    <button onclick="showDay(${i})" class="w-full text-left p-3 rounded-lg transition-colors ${isActive}">
+                        <div class="font-medium">Day ${i}</div>
+                        <div class="text-sm opacity-75">${dateStr}</div>
+                        <div class="text-xs opacity-60">${getThemeForDay(i, duration)}</div>
+                    </button>
+                `;
+            }
+            document.getElementById('dayNavigation').innerHTML = dayNavHTML;
+            
+            // Generate itinerary content
+            generateItineraryContent(duration, totalBudget, startDate);
+        }
+
+        function generateItineraryContent(duration, totalBudget, startDate) {
+            let itineraryHTML = '';
+            
+            for (let i = 1; i <= duration; i++) {
+                const dayDate = new Date(startDate.getTime() + (i - 1) * 24 * 60 * 60 * 1000);
+                const dateStr = dayDate.toISOString().split('T')[0];
+                const isVisible = i === currentDay ? '' : 'hidden';
+                
+                itineraryHTML += `
+                    <div id="day${i}" class="day-content ${isVisible}">
+                        <div class="card">
+                            <div class="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-gray-900">Day ${i}</h2>
+                                    <p class="text-gray-600">${dateStr} • ${getThemeForDay(i, duration)}</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm text-gray-500">Daily Budget</div>
+                                    <div class="font-semibold">$${Math.round(totalBudget * 0.15 / duration).toLocaleString()}</div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i data-lucide="camera" class="h-5 w-5 mr-2"></i>
+                                    Activities
+                                </h3>
+                                
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center space-x-3 mb-2">
+                                                <div class="bg-blue-100 text-blue-600 px-2 py-1 rounded text-sm font-medium">9:00 AM</div>
+                                                <h4 class="font-semibold text-gray-900">${getActivityForInterest(formData.interests?.[0] || 'culture', 'morning')}</h4>
+                                            </div>
+                                            <div class="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                                <div class="flex items-center space-x-1">
+                                                    <i data-lucide="map-pin" class="h-4 w-4"></i>
+                                                    <span>${formData.destination} City Center</span>
+                                                </div>
+                                                <div class="flex items-center space-x-1">
+                                                    <i data-lucide="clock" class="h-4 w-4"></i>
+                                                    <span>2-3 hours</span>
+                                                </div>
+                                            </div>
+                                            <p class="text-sm text-gray-600">Start your day with this must-see attraction</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="font-semibold text-gray-900">$${Math.round(totalBudget * 0.05).toLocaleString()}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center space-x-3 mb-2">
+                                                <div class="bg-blue-100 text-blue-600 px-2 py-1 rounded text-sm font-medium">2:00 PM</div>
+                                                <h4 class="font-semibold text-gray-900">${getActivityForInterest(formData.interests?.[1] || formData.interests?.[0] || 'food', 'afternoon')}</h4>
+                                            </div>
+                                            <div class="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                                <div class="flex items-center space-x-1">
+                                                    <i data-lucide="map-pin" class="h-4 w-4"></i>
+                                                    <span>${formData.destination} Main District</span>
+                                                </div>
+                                                <div class="flex items-center space-x-1">
+                                                    <i data-lucide="clock" class="h-4 w-4"></i>
+                                                    <span>3-4 hours</span>
+                                                </div>
+                                            </div>
+                                            <p class="text-sm text-gray-600">Afternoon highlight activity</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="font-semibold text-gray-900">$${Math.round(totalBudget * 0.07).toLocaleString()}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i data-lucide="utensils" class="h-5 w-5 mr-2"></i>
+                                    Meals
+                                </h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="font-semibold text-gray-900 mb-2">Breakfast</div>
+                                        <div class="text-sm text-gray-600 mb-1">Local Morning Cafe</div>
+                                        <div class="text-sm text-gray-500 mb-2">Continental • Near hotel</div>
+                                        <div class="font-semibold text-gray-900">$${Math.round(totalBudget * 0.02).toLocaleString()}</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="font-semibold text-gray-900 mb-2">Lunch</div>
+                                        <div class="text-sm text-gray-600 mb-1">${formData.destination} Bistro</div>
+                                        <div class="text-sm text-gray-500 mb-2">Local • City center</div>
+                                        <div class="font-semibold text-gray-900">$${Math.round(totalBudget * 0.04).toLocaleString()}</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="font-semibold text-gray-900 mb-2">Dinner</div>
+                                        <div class="text-sm text-gray-600 mb-1">${getTravelStyleRestaurant(formData.travelStyle)}</div>
+                                        <div class="text-sm text-gray-500 mb-2">Local • Entertainment district</div>
+                                        <div class="font-semibold text-gray-900">$${getTravelStyleDinnerCost(formData.travelStyle, totalBudget).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('itineraryContent').innerHTML = itineraryHTML;
+            
+            // Reinitialize Lucide icons for new content
+            lucide.createIcons();
+        }
+
+        function showDay(day) {
+            // Hide all days
+            document.querySelectorAll('.day-content').forEach(dayEl => {
+                dayEl.classList.add('hidden');
+            });
+            
+            // Show selected day
+            document.getElementById(`day${day}`).classList.remove('hidden');
+            
+            // Update day navigation
+            document.querySelectorAll('#dayNavigation button').forEach(btn => {
+                btn.classList.remove('bg-blue-100', 'text-blue-700', 'border-blue-200');
+                btn.classList.add('hover:bg-gray-100', 'text-gray-700');
+            });
+            
+            event.target.closest('button').classList.add('bg-blue-100', 'text-blue-700', 'border-blue-200');
+            event.target.closest('button').classList.remove('hover:bg-gray-100', 'text-gray-700');
+            
+            currentDay = day;
+        }
+
+        function getThemeForDay(dayIndex, totalDays) {
+            if (dayIndex === 1) return "Arrival & City Orientation";
+            if (dayIndex === totalDays) return "Departure Day";
+            
+            const themes = ["Cultural Exploration", "Culinary Adventure", "Natural Wonders", "City Discovery"];
+            return themes[(dayIndex - 2) % themes.length];
+        }
+
+        function getActivityForInterest(interest, timeOfDay) {
+            const activities = {
+                culture: {
+                    morning: "Museum & Historical Site Visit",
+                    afternoon: "Cultural Heritage Tour"
+                },
+                food: {
+                    morning: "Local Food Market Tour",
+                    afternoon: "Cooking Class Experience"
+                },
+                nature: {
+                    morning: "Nature Walk & Scenic Views",
+                    afternoon: "Outdoor Adventure Activity"
+                },
+                nightlife: {
+                    morning: "City Walking Tour",
+                    afternoon: "Local Entertainment District"
+                },
+                adventure: {
+                    morning: "Adventure Sports Activity",
+                    afternoon: "Extreme Activity Experience"
+                },
+                relaxation: {
+                    morning: "Spa & Wellness Session",
+                    afternoon: "Relaxing Park Visit"
+                }
+            };
+            
+            return activities[interest]?.[timeOfDay] || "Local Experience";
+        }
+
+        function getTravelStyleRestaurant(style) {
+            const restaurants = {
+                budget: "Local Eatery",
+                balanced: "Popular Restaurant",
+                luxury: "Fine Dining Restaurant"
+            };
+            return restaurants[style] || "Popular Restaurant";
+        }
+
+        function getTravelStyleDinnerCost(style, totalBudget) {
+            const multipliers = {
+                budget: 0.03,
+                balanced: 0.05,
+                luxury: 0.08
+            };
+            return Math.round(totalBudget * (multipliers[style] || 0.05));
+        }
+
+        function shareItinerary() {
+            if (navigator.share) {
+                navigator.share({
+                    title: `${formData.destination} Trip Itinerary`,
+                    text: `Check out my ${Math.ceil((new Date(formData.endDate) - new Date(formData.startDate)) / (1000 * 60 * 60 * 24))}-day trip to ${formData.destination}!`,
+                    url: window.location.href,
+                });
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                alert('Link copied to clipboard!');
+            }
+        }
+
+        function exportToPDF() {
+            alert('PDF export feature coming soon! For now, you can print this page using Ctrl+P (Cmd+P on Mac)');
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            generateItinerary();
+        });
+    </script>
+</body>
+</html>
