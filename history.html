@@ -11,6 +11,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, addDoc, doc, setDoc, getDocs, query, where, orderBy, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
         // Firebase configuration
         const firebaseConfig = {
@@ -25,10 +26,23 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
         
-        // Make auth available globally
+        // Make auth and firestore available globally
         window.auth = auth;
+        window.db = db;
+        window.firestoreUtils = {
+            collection,
+            addDoc,
+            doc,
+            setDoc,
+            getDocs,
+            query,
+            where,
+            orderBy,
+            deleteDoc
+        };
         window.provider = provider;
         window.signInWithPopup = signInWithPopup;
         window.signOut = signOut;
@@ -362,14 +376,67 @@
             document.getElementById('historyContent').classList.add('hidden');
         }
 
+        // Load itineraries from Firestore
+        async function loadFromFirestore() {
+            try {
+                const user = window.auth.currentUser;
+                if (!user) {
+                    console.log('User not authenticated');
+                    return;
+                }
+
+                // Query itineraries for the current user
+                const q = window.firestoreUtils.query(
+                    window.firestoreUtils.collection(window.db, 'itineraries'),
+                    window.firestoreUtils.where('userId', '==', user.uid),
+                    window.firestoreUtils.orderBy('createdAt', 'desc')
+                );
+
+                const querySnapshot = await window.firestoreUtils.getDocs(q);
+                const firestoreItineraries = [];
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    firestoreItineraries.push({
+                        ...data,
+                        firestoreId: doc.id,
+                        // Convert Firestore timestamp to ISO string if needed
+                        createdAt: data.createdAt?.toDate?.() ? data.createdAt.toDate().toISOString() : data.createdAt
+                    });
+                });
+
+                console.log(`Loaded ${firestoreItineraries.length} itineraries from Firestore`);
+                currentItineraries = firestoreItineraries;
+
+                // Also update localStorage with Firestore data for offline access
+                localStorage.setItem('travelItineraries', JSON.stringify(firestoreItineraries));
+
+            } catch (error) {
+                console.error('Error loading from Firestore:', error);
+                throw error; // Re-throw to trigger fallback
+            }
+        }
+
         // Load itinerary history
-        function loadItineraryHistory() {
+        async function loadItineraryHistory() {
             document.getElementById('loginPrompt').classList.add('hidden');
             document.getElementById('historyContent').classList.remove('hidden');
             
-            // Get itineraries from localStorage
-            const savedItineraries = JSON.parse(localStorage.getItem('travelItineraries') || '[]');
-            currentItineraries = savedItineraries;
+            try {
+                // Load from Firestore if user is authenticated
+                if (window.auth.currentUser) {
+                    await loadFromFirestore();
+                } else {
+                    // Fallback to localStorage for non-authenticated users
+                    const savedItineraries = JSON.parse(localStorage.getItem('travelItineraries') || '[]');
+                    currentItineraries = savedItineraries;
+                }
+            } catch (error) {
+                console.error('Error loading itineraries:', error);
+                // Fallback to localStorage
+                const savedItineraries = JSON.parse(localStorage.getItem('travelItineraries') || '[]');
+                currentItineraries = savedItineraries;
+            }
             
             updateStats();
             displayItineraries(currentItineraries);

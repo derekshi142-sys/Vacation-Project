@@ -12,6 +12,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, addDoc, doc, setDoc, getDocs, query, where, orderBy, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
         // Firebase configuration
         const firebaseConfig = {
@@ -26,10 +27,23 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
         
-        // Make auth available globally
+        // Make auth and firestore available globally
         window.auth = auth;
+        window.db = db;
+        window.firestoreUtils = {
+            collection,
+            addDoc,
+            doc,
+            setDoc,
+            getDocs,
+            query,
+            where,
+            orderBy,
+            deleteDoc
+        };
         window.provider = provider;
         window.signInWithPopup = signInWithPopup;
         window.signOut = signOut;
@@ -634,7 +648,9 @@
             document.getElementById('tripDetails').innerHTML = detailsHTML;
             
             // Save itinerary to history
-            saveItineraryToHistory(aiItinerary, formData);
+            saveItineraryToHistory(aiItinerary, formData).catch(error => {
+                console.error('Error saving itinerary:', error);
+            });
             
             // Display AI budget breakdown
             if (aiItinerary.summary.budgetBreakdown) {
@@ -1095,8 +1111,43 @@
             lucide.createIcons();
         }
 
-        // Save itinerary to localStorage for history
-        function saveItineraryToHistory(aiItinerary, formData) {
+        // Save itinerary to Firestore
+        async function saveToFirestore(itineraryData) {
+            try {
+                const user = window.auth.currentUser;
+                if (!user) {
+                    console.log('User not authenticated, skipping Firestore save');
+                    return;
+                }
+
+                // Add user ID to the itinerary data
+                const firestoreData = {
+                    ...itineraryData,
+                    userId: user.uid,
+                    userEmail: user.email,
+                    userName: user.displayName || user.email
+                };
+
+                // Save to Firestore
+                const docRef = await window.firestoreUtils.addDoc(
+                    window.firestoreUtils.collection(window.db, 'itineraries'), 
+                    firestoreData
+                );
+
+                console.log('Itinerary saved to Firestore with ID:', docRef.id);
+                
+                // Update the local data with Firestore ID
+                firestoreData.firestoreId = docRef.id;
+                
+                return docRef.id;
+            } catch (error) {
+                console.error('Error saving to Firestore:', error);
+                // Don't throw error - localStorage save should still work
+            }
+        }
+
+        // Save itinerary to localStorage and Firestore for history
+        async function saveItineraryToHistory(aiItinerary, formData) {
             try {
                 // Validate inputs
                 if (!aiItinerary || !formData) {
@@ -1165,6 +1216,11 @@
                 
                 // Save back to localStorage
                 localStorage.setItem('travelItineraries', JSON.stringify(existingItineraries));
+                
+                // Save to Firestore if user is authenticated
+                if (window.auth.currentUser) {
+                    await saveToFirestore(historyItinerary);
+                }
                 
                 console.log('Itinerary saved to history:', historyItinerary.destination);
             } catch (error) {
