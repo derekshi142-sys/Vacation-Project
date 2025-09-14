@@ -633,6 +633,9 @@
             `;
             document.getElementById('tripDetails').innerHTML = detailsHTML;
             
+            // Save itinerary to history
+            saveItineraryToHistory(aiItinerary, formData);
+            
             // Display AI budget breakdown
             if (aiItinerary.summary.budgetBreakdown) {
                 const budgetBreakdown = `
@@ -1090,6 +1093,56 @@
             
             // Reinitialize Lucide icons for new content
             lucide.createIcons();
+        }
+
+        // Save itinerary to localStorage for history
+        function saveItineraryToHistory(aiItinerary, formData) {
+            try {
+                // Get existing itineraries from localStorage
+                const existingItineraries = JSON.parse(localStorage.getItem('travelItineraries') || '[]');
+                
+                // Create itinerary object for history
+                const historyItinerary = {
+                    id: Date.now().toString(),
+                    destination: formData.destination,
+                    duration: aiItinerary.summary.duration,
+                    budget: formData.budget,
+                    travelStyle: formData.interests || 'Adventure',
+                    groupSize: formData.travelers,
+                    startDate: formData.startDate,
+                    endDate: formData.endDate,
+                    createdAt: new Date().toISOString(),
+                    itinerary: aiItinerary.days.map(day => ({
+                        day: day.day,
+                        activities: day.activities.map(activity => ({
+                            name: activity.name,
+                            description: activity.description,
+                            time: activity.time,
+                            cost: activity.cost,
+                            type: activity.type || 'activity'
+                        })),
+                        meals: day.meals,
+                        accommodation: day.accommodation,
+                        totalCost: day.totalCost
+                    })),
+                    summary: aiItinerary.summary
+                };
+                
+                // Add to beginning of array (newest first)
+                existingItineraries.unshift(historyItinerary);
+                
+                // Keep only last 50 itineraries to prevent localStorage bloat
+                if (existingItineraries.length > 50) {
+                    existingItineraries.splice(50);
+                }
+                
+                // Save back to localStorage
+                localStorage.setItem('travelItineraries', JSON.stringify(existingItineraries));
+                
+                console.log('Itinerary saved to history:', historyItinerary.destination);
+            } catch (error) {
+                console.error('Failed to save itinerary to history:', error);
+            }
         }
 
         // Initialize the page
