@@ -1098,6 +1098,12 @@
         // Save itinerary to localStorage for history
         function saveItineraryToHistory(aiItinerary, formData) {
             try {
+                // Validate inputs
+                if (!aiItinerary || !formData) {
+                    console.error('Missing aiItinerary or formData');
+                    return;
+                }
+                
                 // Get existing itineraries from localStorage
                 const existingItineraries = JSON.parse(localStorage.getItem('travelItineraries') || '[]');
                 
@@ -1129,9 +1135,9 @@
                     startDate: formData.startDate,
                     endDate: formData.endDate,
                     createdAt: new Date().toISOString(),
-                    itinerary: aiItinerary.days.map(day => ({
+                    itinerary: (aiItinerary.dailyItinerary || []).map(day => ({
                         day: day.day,
-                        activities: day.activities.map(activity => ({
+                        activities: (day.activities || []).map(activity => ({
                             name: activity.name,
                             description: activity.description,
                             time: activity.time,
@@ -1142,7 +1148,11 @@
                         accommodation: day.accommodation,
                         totalCost: day.totalCost
                     })),
-                    summary: aiItinerary.summary
+                    summary: aiItinerary.summary || {
+                        destination: formData.destination,
+                        duration: formData.duration || 1,
+                        totalBudget: formData.budget || 1000
+                    }
                 };
                 
                 // Add to beginning of array (newest first)
