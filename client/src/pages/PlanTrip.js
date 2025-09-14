@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   MapPin, 
@@ -12,12 +12,29 @@ import {
   Zap,
   ArrowRight
 } from 'lucide-react';
-import axios from 'axios';
+// Firebase imports
+import { auth, db } from '../firebase';
+import { collection, addDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const PlanTrip = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Monitor authentication state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+      console.log('Auth state changed:', currentUser ? 'User logged in' : 'User logged out');
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const [formData, setFormData] = useState({
     destination: '',
     startDate: '',
@@ -72,12 +89,84 @@ const PlanTrip = () => {
 
   const handleSubmit = async () => {
     setIsLoading(true);
+    
     try {
-      const response = await axios.post('/api/generate-itinerary', formData);
-      navigate(`/itinerary/${response.data.id}`);
+      console.log('Form data to be saved:', formData);
+      console.log('Current user:', user);
+      
+      if (!user) {
+        alert('Please log in first to save your travel plan.');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Prepare data for Firestore
+      const firestoreData = {
+        // User information
+        userId: user.uid,
+        userEmail: user.email,
+        userName: user.displayName || user.email,
+        
+        // Form data
+        destination: formData.destination,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        travelers: formData.travelers,
+        budget: formData.budget,
+        budgetType: formData.budgetType,
+        travelStyle: formData.travelStyle,
+        interests: formData.interests,
+        foodPreferences: formData.foodPreferences,
+        accommodationType: formData.accommodationType,
+        customActivities: formData.customActivities || '',
+        
+        // Metadata
+        createdAt: new Date(),
+        testMode: true,
+        status: 'pending'
+      };
+      
+      console.log('Saving to Firestore:', firestoreData);
+      
+      // Save to Firestore
+      const docRef = await addDoc(collection(db, 'user-inputs-test'), firestoreData);
+      console.log('✅ Document saved to Firestore with ID:', docRef.id);
+      
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Navigate to results page with data
+      const queryParams = new URLSearchParams({
+        destination: formData.destination,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        travelers: formData.travelers,
+        budget: formData.budget,
+        budgetType: formData.budgetType,
+        travelStyle: formData.travelStyle,
+        interests: JSON.stringify(formData.interests),
+        foodPreferences: JSON.stringify(formData.foodPreferences),
+        accommodationType: formData.accommodationType,
+        customActivities: formData.customActivities || '',
+        firestoreId: docRef.id
+      });
+      
+      // Navigate to the HTML results page
+      window.location.href = `/results.html?${queryParams.toString()}`;
+      
     } catch (error) {
-      console.error('Error generating itinerary:', error);
-      alert('Failed to generate itinerary. Please try again.');
+      console.error('❌ Error saving to Firestore:', error);
+      
+      let errorMessage = 'Failed to save travel data. ';
+      if (error.code === 'permission-denied') {
+        errorMessage += 'Please check your Firebase permissions.';
+      } else if (error.code === 'unavailable') {
+        errorMessage += 'Database is currently unavailable. Please try again.';
+      } else {
+        errorMessage += 'Please try again.';
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -104,13 +193,52 @@ const PlanTrip = () => {
     }
   };
 
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="loading-spinner mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-900">Loading...</h2>
+          <p className="text-gray-600">Checking authentication status</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md mx-auto text-center p-6">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="h-8 w-8 text-blue-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Login Required</h2>
+          <p className="text-gray-600 mb-6">Please sign in to start planning your trip and save your preferences to Firestore.</p>
+          <div className="space-y-3">
+            <a 
+              href="/login.html" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 inline-block"
+            >
+              Sign In
+            </a>
+            <p className="text-sm text-gray-500">
+              Your travel plans will be securely saved to your account
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="loading-spinner mx-auto mb-4"></div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Creating Your Perfect Itinerary</h2>
-          <p className="text-gray-600">This will just take a moment...</p>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Saving to Firestore Database</h2>
+          <p className="text-gray-600">Securely storing your travel preferences...</p>
         </div>
       </div>
     );
