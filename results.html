@@ -430,7 +430,7 @@
             }
         }
 
-        // Generate itinerary with AI
+        // Generate itinerary with AI (TESTING MODE - Save inputs only)
         async function generateItinerary() {
             parseURLParams();
             
@@ -440,17 +440,188 @@
             const totalBudget = parseInt(formData.budget) || 5000;
             
             // Show loading state
-            document.getElementById('tripTitle').textContent = 'Generating Your Perfect Itinerary...';
-            document.getElementById('tripDetails').innerHTML = '<div class="flex items-center space-x-2"><div class="loading-spinner"></div><span>AI is working its magic...</span></div>';
+            document.getElementById('tripTitle').textContent = 'Testing Firestore Database...';
+            document.getElementById('tripDetails').innerHTML = '<div class="flex items-center space-x-2"><div class="loading-spinner"></div><span>Saving your inputs to database...</span></div>';
             
-            // Simulate AI processing
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // TEST MODE: Save only user inputs to Firestore
+            await testFirestoreSave(formData, duration, totalBudget);
             
-            // Generate AI itinerary directly
-            const aiItinerary = generateAIItineraryData(formData, duration, totalBudget, startDate);
-            displayAIItinerary(aiItinerary, duration, totalBudget, startDate);
+            // Show test results instead of generating AI itinerary
+            displayTestResults(formData, duration, totalBudget);
         }
-        
+
+        // TEST FUNCTION: Save only user inputs to Firestore
+        async function testFirestoreSave(formData, duration, totalBudget) {
+            try {
+                const user = window.auth.currentUser;
+                
+                // Create test data with only user inputs
+                const testData = {
+                    // User authentication info
+                    userId: user ? user.uid : 'anonymous',
+                    userEmail: user ? user.email : 'not-logged-in',
+                    userName: user ? (user.displayName || user.email) : 'anonymous',
+                    
+                    // Original user inputs from the form
+                    destination: formData.destination,
+                    startDate: formData.startDate,
+                    endDate: formData.endDate,
+                    duration: duration,
+                    budget: formData.budget,
+                    budgetType: formData.budgetType,
+                    travelers: formData.travelers,
+                    travelStyle: formData.travelStyle,
+                    interests: formData.interests,
+                    foodPreferences: formData.foodPreferences,
+                    accommodationType: formData.accommodationType,
+                    customActivities: formData.customActivities,
+                    
+                    // Metadata
+                    testMode: true,
+                    createdAt: new Date().toISOString(),
+                    timestamp: Date.now()
+                };
+
+                console.log('Attempting to save test data to Firestore:', testData);
+
+                if (user) {
+                    // Save to Firestore
+                    const docRef = await window.firestoreUtils.addDoc(
+                        window.firestoreUtils.collection(window.db, 'user-inputs-test'), 
+                        testData
+                    );
+                    console.log('✅ SUCCESS: Test data saved to Firestore with ID:', docRef.id);
+                    return { success: true, docId: docRef.id, data: testData };
+                } else {
+                    console.log('⚠️ User not authenticated - would save to Firestore if logged in');
+                    return { success: false, reason: 'not-authenticated', data: testData };
+                }
+
+            } catch (error) {
+                console.error('❌ ERROR: Failed to save test data to Firestore:', error);
+                return { success: false, error: error.message, data: null };
+            }
+        }
+
+        // Display test results instead of AI itinerary
+        async function displayTestResults(formData, duration, totalBudget) {
+            const testResult = await testFirestoreSave(formData, duration, totalBudget);
+            
+            // Update page title
+            document.getElementById('tripTitle').textContent = 'Firestore Database Test Results';
+            
+            // Create test results display
+            const testResultsHTML = `
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-2">
+                        ${testResult.success ? 
+                            '<i data-lucide="check-circle" class="h-5 w-5 text-green-600"></i><span class="text-green-600 font-medium">Database Connection: SUCCESS</span>' :
+                            '<i data-lucide="x-circle" class="h-5 w-5 text-red-600"></i><span class="text-red-600 font-medium">Database Connection: FAILED</span>'
+                        }
+                    </div>
+                    ${testResult.docId ? `<p class="text-sm text-gray-600">Document ID: ${testResult.docId}</p>` : ''}
+                    ${testResult.error ? `<p class="text-sm text-red-600">Error: ${testResult.error}</p>` : ''}
+                    ${testResult.reason === 'not-authenticated' ? '<p class="text-sm text-orange-600">Please log in to test Firestore saving</p>' : ''}
+                </div>
+            `;
+            document.getElementById('tripDetails').innerHTML = testResultsHTML;
+            
+            // Display user inputs that were saved/would be saved
+            const userInputsHTML = `
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i data-lucide="database" class="h-5 w-5 mr-2"></i>
+                        User Inputs ${testResult.success ? 'Saved to Firestore' : 'Ready for Database'}
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="map-pin" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Destination</p>
+                                    <p class="font-medium text-gray-900">${formData.destination || 'Not specified'}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="calendar" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Travel Dates</p>
+                                    <p class="font-medium text-gray-900">${formData.startDate || 'Not specified'} to ${formData.endDate || 'Not specified'}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="clock" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Duration</p>
+                                    <p class="font-medium text-gray-900">${duration} days</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="dollar-sign" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Budget</p>
+                                    <p class="font-medium text-gray-900">$${formData.budget || 'Not specified'} (${formData.budgetType || 'total'})</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="users" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Travelers</p>
+                                    <p class="font-medium text-gray-900">${formData.travelers || 'Not specified'}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="compass" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Travel Style</p>
+                                    <p class="font-medium text-gray-900">${formData.travelStyle || 'Not specified'}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="heart" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Interests</p>
+                                    <p class="font-medium text-gray-900">${Array.isArray(formData.interests) ? formData.interests.join(', ') : (formData.interests || 'Not specified')}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="bed" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Accommodation</p>
+                                    <p class="font-medium text-gray-900">${formData.accommodationType || 'Not specified'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ${formData.customActivities ? `
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="zap" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Custom Activities</p>
+                                    <p class="font-medium text-gray-900">${formData.customActivities}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-medium text-blue-900 mb-2">🧪 Testing Mode Active</h4>
+                    <p class="text-sm text-blue-700">This is a database connectivity test. Your inputs ${testResult.success ? 'have been saved to' : 'would be saved to'} Firestore database.</p>
+                    <p class="text-sm text-blue-700 mt-1">AI itinerary generation is disabled during testing phase.</p>
+                </div>
+            `;
+            
+            // Display the results
+            document.getElementById('itineraryContent').innerHTML = userInputsHTML;
+            
+            // Reinitialize Lucide icons
+            lucide.createIcons();
+        }
+
         // Generate AI itinerary data
         function generateAIItineraryData(formData, duration, totalBudget, startDate) {
             const destination = formData.destination.toLowerCase();
