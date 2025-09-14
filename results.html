@@ -1104,6 +1104,23 @@
                 // Create itinerary object for history
                 const historyItinerary = {
                     id: Date.now().toString(),
+                    // Original user inputs
+                    userInputs: {
+                        destination: formData.destination,
+                        startDate: formData.startDate,
+                        endDate: formData.endDate,
+                        duration: formData.duration || aiItinerary.summary.duration,
+                        budget: formData.budget,
+                        travelers: formData.travelers,
+                        interests: formData.interests,
+                        accommodation: formData.accommodation,
+                        transportation: formData.transportation,
+                        activities: formData.activities,
+                        dietaryRestrictions: formData.dietaryRestrictions,
+                        accessibility: formData.accessibility,
+                        specialRequests: formData.specialRequests
+                    },
+                    // Processed data for display
                     destination: formData.destination,
                     duration: aiItinerary.summary.duration,
                     budget: formData.budget,

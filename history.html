@@ -399,41 +399,46 @@
             
             emptyState.classList.add('hidden');
             
-            grid.innerHTML = itineraries.map((itinerary, index) => `
+            grid.innerHTML = itineraries.map((itinerary, index) => {
+                const userInputs = itinerary.userInputs || {};
+                const startDate = userInputs.startDate ? new Date(userInputs.startDate).toLocaleDateString() : 'Not specified';
+                const endDate = userInputs.endDate ? new Date(userInputs.endDate).toLocaleDateString() : 'Not specified';
+                
+                return `
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer" onclick="openItinerary(${index})">
                     <div class="h-48 bg-gradient-to-r from-blue-500 to-purple-600 relative">
                         <div class="absolute inset-0 bg-black bg-opacity-20"></div>
                         <div class="absolute bottom-4 left-4 text-white">
                             <h3 class="text-xl font-bold">${itinerary.destination}</h3>
-                            <p class="text-blue-100">${itinerary.duration} days • ${itinerary.budget}</p>
+                            <p class="text-blue-100">${startDate} - ${endDate}</p>
+                            <p class="text-blue-100">${itinerary.duration} days • ${userInputs.budget || itinerary.budget}</p>
                         </div>
                         <div class="absolute top-4 right-4">
                             <span class="bg-white bg-opacity-20 text-white px-2 py-1 rounded-full text-sm">
-                                ${itinerary.travelStyle}
+                                ${userInputs.interests || itinerary.travelStyle}
                             </span>
                         </div>
                     </div>
                     <div class="p-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm text-gray-500">Created: ${new Date(itinerary.createdAt).toLocaleDateString()}</span>
-                            <div class="flex items-center space-x-1">
-                                <i data-lucide="calendar" class="h-4 w-4 text-gray-400"></i>
-                                <span class="text-sm text-gray-600">${itinerary.itinerary.length} days planned</span>
+                        <div class="mb-3">
+                            <h4 class="font-medium text-gray-900 mb-2">Your Original Request:</h4>
+                            <div class="space-y-1 text-sm text-gray-600">
+                                ${userInputs.travelers ? `<div class="flex items-center space-x-2"><i data-lucide="users" class="h-3 w-3"></i><span>${userInputs.travelers} travelers</span></div>` : ''}
+                                ${userInputs.accommodation ? `<div class="flex items-center space-x-2"><i data-lucide="bed" class="h-3 w-3"></i><span>${userInputs.accommodation}</span></div>` : ''}
+                                ${userInputs.transportation ? `<div class="flex items-center space-x-2"><i data-lucide="car" class="h-3 w-3"></i><span>${userInputs.transportation}</span></div>` : ''}
+                                ${userInputs.activities ? `<div class="flex items-center space-x-2"><i data-lucide="zap" class="h-3 w-3"></i><span>${Array.isArray(userInputs.activities) ? userInputs.activities.join(', ') : userInputs.activities}</span></div>` : ''}
                             </div>
                         </div>
-                        <p class="text-gray-600 text-sm line-clamp-2">${itinerary.itinerary[0]?.activities[0]?.description || 'Exciting adventure awaits!'}</p>
-                        <div class="mt-3 flex justify-between items-center">
-                            <div class="flex items-center space-x-2">
-                                <i data-lucide="users" class="h-4 w-4 text-gray-400"></i>
-                                <span class="text-sm text-gray-600">${itinerary.groupSize} travelers</span>
-                            </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+                            <span class="text-xs text-gray-500">Created: ${new Date(itinerary.createdAt).toLocaleDateString()}</span>
                             <button onclick="event.stopPropagation(); shareItinerary(${index})" class="text-blue-600 hover:text-blue-700">
                                 <i data-lucide="share-2" class="h-4 w-4"></i>
                             </button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
             
             // Reinitialize Lucide icons for new content
             lucide.createIcons();
@@ -448,8 +453,109 @@
             
             title.textContent = `${selectedItinerary.destination} - ${selectedItinerary.duration} Days`;
             
+            const userInputs = selectedItinerary.userInputs || {};
+            const startDate = userInputs.startDate ? new Date(userInputs.startDate).toLocaleDateString() : 'Not specified';
+            const endDate = userInputs.endDate ? new Date(userInputs.endDate).toLocaleDateString() : 'Not specified';
+            
             content.innerHTML = `
                 <div class="space-y-6">
+                    <!-- User's Original Request Section -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-blue-900 mb-4 flex items-center">
+                            <i data-lucide="user" class="h-5 w-5 mr-2"></i>
+                            Your Original Request
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-3">
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="map-pin" class="h-4 w-4 text-blue-600"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Destination</p>
+                                        <p class="font-medium text-gray-900">${userInputs.destination || selectedItinerary.destination}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="calendar" class="h-4 w-4 text-blue-600"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Travel Dates</p>
+                                        <p class="font-medium text-gray-900">${startDate} - ${endDate}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="users" class="h-4 w-4 text-blue-600"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Travelers</p>
+                                        <p class="font-medium text-gray-900">${userInputs.travelers || selectedItinerary.groupSize}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="dollar-sign" class="h-4 w-4 text-blue-600"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Budget</p>
+                                        <p class="font-medium text-gray-900">${userInputs.budget || selectedItinerary.budget}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                ${userInputs.interests ? `
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="heart" class="h-4 w-4 text-blue-600"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Interests</p>
+                                        <p class="font-medium text-gray-900">${userInputs.interests}</p>
+                                    </div>
+                                </div>
+                                ` : ''}
+                                ${userInputs.accommodation ? `
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="bed" class="h-4 w-4 text-blue-600"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Accommodation</p>
+                                        <p class="font-medium text-gray-900">${userInputs.accommodation}</p>
+                                    </div>
+                                </div>
+                                ` : ''}
+                                ${userInputs.transportation ? `
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="car" class="h-4 w-4 text-blue-600"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Transportation</p>
+                                        <p class="font-medium text-gray-900">${userInputs.transportation}</p>
+                                    </div>
+                                </div>
+                                ` : ''}
+                                ${userInputs.activities ? `
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="zap" class="h-4 w-4 text-blue-600"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Preferred Activities</p>
+                                        <p class="font-medium text-gray-900">${Array.isArray(userInputs.activities) ? userInputs.activities.join(', ') : userInputs.activities}</p>
+                                    </div>
+                                </div>
+                                ` : ''}
+                                ${userInputs.dietaryRestrictions ? `
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="utensils" class="h-4 w-4 text-blue-600"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Dietary Restrictions</p>
+                                        <p class="font-medium text-gray-900">${userInputs.dietaryRestrictions}</p>
+                                    </div>
+                                </div>
+                                ` : ''}
+                                ${userInputs.specialRequests ? `
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="message-circle" class="h-4 w-4 text-blue-600"></i>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Special Requests</p>
+                                        <p class="font-medium text-gray-900">${userInputs.specialRequests}</p>
+                                    </div>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Generated Itinerary Summary -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
                         <div>
                             <p class="text-sm text-gray-600">Duration</p>
@@ -600,3 +706,4 @@
     </script>
 </body>
 </html>
+
