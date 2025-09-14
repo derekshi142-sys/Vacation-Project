@@ -50,19 +50,90 @@
         
         // Auth state change handler
         let isLoginProcess = false;
+        let allowAutoRedirect = false;
         
         onAuthStateChanged(auth, (user) => {
+            console.log('Auth state changed:', user ? 'User logged in' : 'User logged out', 'isLoginProcess:', isLoginProcess);
+            
             if (user && isLoginProcess) {
                 // User just signed in, show success message
+                console.log('Showing login success for new login');
                 showLoginSuccess(user);
                 isLoginProcess = false;
-            } else if (user && !isLoginProcess) {
-                // User is already signed in, redirect immediately
+            } else if (user && allowAutoRedirect) {
+                // Only redirect if explicitly allowed (e.g., from URL parameter)
+                console.log('Auto-redirecting existing user');
                 const urlParams = new URLSearchParams(window.location.search);
                 const redirect = urlParams.get('redirect') || 'index.html';
                 window.location.href = redirect;
+            } else if (user) {
+                // User is logged in but we're staying on login page
+                console.log('User is logged in, but staying on login page');
+                showLoggedInState(user);
             }
         });
+        
+        // Check if we should auto-redirect on page load
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('redirect')) {
+                allowAutoRedirect = true;
+                console.log('Auto-redirect enabled due to redirect parameter');
+            }
+        });
+        
+        // Show logged-in state without redirecting
+        function showLoggedInState(user) {
+            // Hide all forms
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('signupForm').classList.add('hidden');
+            document.getElementById('forgotForm').classList.add('hidden');
+            
+            // Hide tab navigation
+            document.querySelector('.flex.mb-6').classList.add('hidden');
+            
+            // Show already logged in message
+            const loggedInHTML = `
+                <div class="text-center space-y-6">
+                    <div class="flex justify-center">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i data-lucide="user-check" class="h-8 w-8 text-blue-600"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Already Logged In</h3>
+                        <p class="text-gray-600">You're already signed in as ${user.displayName || user.email || 'User'}!</p>
+                    </div>
+                    <div class="flex items-center justify-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                        <img src="${user.photoURL || 'https://via.placeholder.com/40x40?text=' + (user.displayName?.charAt(0) || 'U')}" 
+                             alt="User Avatar" class="w-10 h-10 rounded-full">
+                        <div class="text-left">
+                            <div class="font-medium text-gray-900">${user.displayName || 'User'}</div>
+                            <div class="text-sm text-gray-500">${user.email || ''}</div>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <button onclick="redirectToHome()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200">
+                            Go to Home
+                        </button>
+                        <button onclick="redirectToPlan()" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200">
+                            Plan New Trip
+                        </button>
+                        <button onclick="signOutAndStay()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg transition-colors duration-200">
+                            Sign Out & Login as Different User
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Replace form content with logged-in message
+            const authCard = document.querySelector('.auth-card');
+            const formContainer = authCard.querySelector('.space-y-6').parentElement;
+            formContainer.innerHTML = loggedInHTML;
+            
+            // Reinitialize Lucide icons
+            lucide.createIcons();
+        }
         
         // Show login success message
         function showLoginSuccess(user) {
@@ -133,18 +204,68 @@
             window.location.href = redirect;
         }
         
+        // Helper functions for logged-in state
+        function redirectToHome() {
+            window.location.href = 'index.html';
+        }
+        
+        function redirectToPlan() {
+            window.location.href = 'plan.html';
+        }
+        
+        async function signOutAndStay() {
+            try {
+                await signOut(auth);
+                console.log('User signed out');
+                // Page will reload to show login forms
+                window.location.reload();
+            } catch (error) {
+                console.error('Sign out error:', error);
+                alert('Failed to sign out. Please try again.');
+            }
+        }
+        
         // Google Sign In function
         window.googleSignIn = async () => {
             try {
+                console.log('Starting Google sign-in process...');
                 isLoginProcess = true;
-                showLoading('googleBtn', 'Signing in with Google...');
+                showLoading('googleBtn', 'Opening Google sign-in...');
+                
+                // Configure Google Auth provider
+                provider.setCustomParameters({
+                    prompt: 'select_account'
+                });
+                
+                console.log('Calling signInWithPopup...');
                 const result = await signInWithPopup(auth, provider);
-                console.log('User signed in with Google:', result.user);
+                console.log('Google sign-in successful:', result.user);
                 // Success message handled by auth state change
             } catch (error) {
                 console.error('Google sign in error:', error);
                 isLoginProcess = false;
-                showError('Failed to sign in with Google. Please try again.');
+                
+                let errorMessage = 'Failed to sign in with Google. Please try again.';
+                
+                switch (error.code) {
+                    case 'auth/popup-closed-by-user':
+                        errorMessage = 'Sign-in was cancelled. Please try again.';
+                        break;
+                    case 'auth/popup-blocked':
+                        errorMessage = 'Pop-up was blocked by your browser. Please allow pop-ups and try again.';
+                        break;
+                    case 'auth/cancelled-popup-request':
+                        errorMessage = 'Sign-in was cancelled. Please try again.';
+                        break;
+                    case 'auth/network-request-failed':
+                        errorMessage = 'Network error. Please check your connection and try again.';
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = 'Too many attempts. Please wait a moment and try again.';
+                        break;
+                }
+                
+                showError(errorMessage);
                 hideLoading('googleBtn', 'Continue with Google');
             }
         };
