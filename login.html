@@ -197,23 +197,23 @@
             }, 1000);
         }
         
-        // Redirect function
-        function redirectNow() {
+        // Redirect function (make it global)
+        window.redirectNow = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const redirect = urlParams.get('redirect') || 'index.html';
             window.location.href = redirect;
         }
         
-        // Helper functions for logged-in state
-        function redirectToHome() {
+        // Helper functions for logged-in state (make them global)
+        window.redirectToHome = function() {
             window.location.href = 'index.html';
         }
         
-        function redirectToPlan() {
+        window.redirectToPlan = function() {
             window.location.href = 'plan.html';
         }
         
-        async function signOutAndStay() {
+        window.signOutAndStay = async function() {
             try {
                 await signOut(auth);
                 console.log('User signed out');
@@ -639,14 +639,14 @@
         // Initialize Lucide icons
         lucide.createIcons();
 
-        // Mobile menu toggle
-        function toggleMobileMenu() {
+        // Mobile menu toggle (make global)
+        window.toggleMobileMenu = function() {
             const menu = document.getElementById('mobileMenu');
             menu.classList.toggle('hidden');
         }
 
-        // Tab switching
-        function showTab(tab) {
+        // Tab switching (make global)
+        window.showTab = function(tab) {
             // Hide all forms
             document.getElementById('loginForm').classList.add('hidden');
             document.getElementById('signupForm').classList.add('hidden');
@@ -669,14 +669,14 @@
             }
         }
 
-        function showForgotPassword() {
+        window.showForgotPassword = function() {
             document.getElementById('loginForm').classList.add('hidden');
             document.getElementById('signupForm').classList.add('hidden');
             document.getElementById('forgotForm').classList.remove('hidden');
         }
 
-        // Form handlers
-        function handleEmailLogin() {
+        // Form handlers (make global)
+        window.handleEmailLogin = function() {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             
@@ -688,7 +688,7 @@
             emailSignIn(email, password);
         }
 
-        function handleEmailSignup() {
+        window.handleEmailSignup = function() {
             const name = document.getElementById('signupName').value;
             const email = document.getElementById('signupEmail').value;
             const password = document.getElementById('signupPassword').value;
@@ -718,7 +718,7 @@
             emailSignUp(email, password, name);
         }
 
-        function handlePasswordReset() {
+        window.handlePasswordReset = function() {
             const email = document.getElementById('resetEmail').value;
             
             if (!email) {
