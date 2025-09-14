@@ -49,24 +49,101 @@
         window.updateProfile = updateProfile;
         
         // Auth state change handler
+        let isLoginProcess = false;
+        
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // User is signed in, redirect to home or plan page
+            if (user && isLoginProcess) {
+                // User just signed in, show success message
+                showLoginSuccess(user);
+                isLoginProcess = false;
+            } else if (user && !isLoginProcess) {
+                // User is already signed in, redirect immediately
                 const urlParams = new URLSearchParams(window.location.search);
                 const redirect = urlParams.get('redirect') || 'index.html';
                 window.location.href = redirect;
             }
         });
         
+        // Show login success message
+        function showLoginSuccess(user) {
+            // Hide all forms
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('signupForm').classList.add('hidden');
+            document.getElementById('forgotForm').classList.add('hidden');
+            
+            // Hide tab navigation
+            document.querySelector('.flex.mb-6').classList.add('hidden');
+            
+            // Show success message
+            const successHTML = `
+                <div class="text-center space-y-6">
+                    <div class="flex justify-center">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                            <i data-lucide="check" class="h-8 w-8 text-green-600"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Login Successful!</h3>
+                        <p class="text-gray-600">Welcome back, ${user.displayName || user.email || 'User'}!</p>
+                    </div>
+                    <div class="flex items-center justify-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                        <img src="${user.photoURL || 'https://via.placeholder.com/40x40?text=' + (user.displayName?.charAt(0) || 'U')}" 
+                             alt="User Avatar" class="w-10 h-10 rounded-full">
+                        <div class="text-left">
+                            <div class="font-medium text-gray-900">${user.displayName || 'User'}</div>
+                            <div class="text-sm text-gray-500">${user.email || ''}</div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        Redirecting you in <span id="countdown">3</span> seconds...
+                    </div>
+                    <button onclick="redirectNow()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200">
+                        Continue Now
+                    </button>
+                </div>
+            `;
+            
+            // Replace form content with success message
+            const authCard = document.querySelector('.auth-card');
+            const formContainer = authCard.querySelector('.space-y-6').parentElement;
+            formContainer.innerHTML = successHTML;
+            
+            // Reinitialize Lucide icons for the new check icon
+            lucide.createIcons();
+            
+            // Start countdown
+            let countdown = 3;
+            const countdownElement = document.getElementById('countdown');
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdownElement) {
+                    countdownElement.textContent = countdown;
+                }
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    redirectNow();
+                }
+            }, 1000);
+        }
+        
+        // Redirect function
+        function redirectNow() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirect = urlParams.get('redirect') || 'index.html';
+            window.location.href = redirect;
+        }
+        
         // Google Sign In function
         window.googleSignIn = async () => {
             try {
+                isLoginProcess = true;
                 showLoading('googleBtn', 'Signing in with Google...');
                 const result = await signInWithPopup(auth, provider);
                 console.log('User signed in with Google:', result.user);
-                // Redirect handled by auth state change
+                // Success message handled by auth state change
             } catch (error) {
                 console.error('Google sign in error:', error);
+                isLoginProcess = false;
                 showError('Failed to sign in with Google. Please try again.');
                 hideLoading('googleBtn', 'Continue with Google');
             }
@@ -75,10 +152,11 @@
         // Email Sign In function
         window.emailSignIn = async (email, password) => {
             try {
+                isLoginProcess = true;
                 showLoading('loginBtn', 'Signing in...');
                 const result = await signInWithEmailAndPassword(auth, email, password);
                 console.log('User signed in with email:', result.user);
-                // Redirect handled by auth state change
+                // Success message handled by auth state change
             } catch (error) {
                 console.error('Email sign in error:', error);
                 let errorMessage = 'Failed to sign in. Please check your credentials.';
@@ -98,6 +176,7 @@
                         break;
                 }
                 
+                isLoginProcess = false;
                 showError(errorMessage);
                 hideLoading('loginBtn', 'Sign In');
             }
@@ -106,6 +185,7 @@
         // Email Sign Up function
         window.emailSignUp = async (email, password, displayName) => {
             try {
+                isLoginProcess = true;
                 showLoading('signupBtn', 'Creating account...');
                 const result = await createUserWithEmailAndPassword(auth, email, password);
                 
@@ -117,7 +197,7 @@
                 }
                 
                 console.log('User signed up with email:', result.user);
-                // Redirect handled by auth state change
+                // Success message handled by auth state change
             } catch (error) {
                 console.error('Email sign up error:', error);
                 let errorMessage = 'Failed to create account. Please try again.';
@@ -134,6 +214,7 @@
                         break;
                 }
                 
+                isLoginProcess = false;
                 showError(errorMessage);
                 hideLoading('signupBtn', 'Create Account');
             }
