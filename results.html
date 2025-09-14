@@ -453,7 +453,12 @@
         // TEST FUNCTION: Save only user inputs to Firestore
         async function testFirestoreSave(formData, duration, totalBudget) {
             try {
+                // Wait a moment for auth state to be ready
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
                 const user = window.auth.currentUser;
+                console.log('Current auth state:', user ? 'Authenticated' : 'Not authenticated');
+                console.log('User details:', user ? { uid: user.uid, email: user.email, displayName: user.displayName } : 'No user');
                 
                 // Create test data with only user inputs
                 const testData = {
@@ -485,21 +490,43 @@
                 console.log('Attempting to save test data to Firestore:', testData);
 
                 if (user) {
-                    // Save to Firestore
-                    const docRef = await window.firestoreUtils.addDoc(
-                        window.firestoreUtils.collection(window.db, 'user-inputs-test'), 
-                        testData
-                    );
-                    console.log('✅ SUCCESS: Test data saved to Firestore with ID:', docRef.id);
-                    return { success: true, docId: docRef.id, data: testData };
+                    try {
+                        // Save to Firestore
+                        const docRef = await window.firestoreUtils.addDoc(
+                            window.firestoreUtils.collection(window.db, 'user-inputs-test'), 
+                            testData
+                        );
+                        console.log('✅ SUCCESS: Test data saved to Firestore with ID:', docRef.id);
+                        return { success: true, docId: docRef.id, data: testData, authenticated: true };
+                    } catch (firestoreError) {
+                        console.error('❌ FIRESTORE ERROR:', firestoreError);
+                        return { 
+                            success: false, 
+                            error: firestoreError.message, 
+                            data: testData, 
+                            authenticated: true,
+                            errorType: 'firestore'
+                        };
+                    }
                 } else {
                     console.log('⚠️ User not authenticated - would save to Firestore if logged in');
-                    return { success: false, reason: 'not-authenticated', data: testData };
+                    return { 
+                        success: false, 
+                        reason: 'not-authenticated', 
+                        data: testData, 
+                        authenticated: false 
+                    };
                 }
 
             } catch (error) {
                 console.error('❌ ERROR: Failed to save test data to Firestore:', error);
-                return { success: false, error: error.message, data: null };
+                return { 
+                    success: false, 
+                    error: error.message, 
+                    data: null, 
+                    authenticated: false,
+                    errorType: 'general'
+                };
             }
         }
 
@@ -516,12 +543,39 @@
                     <div class="flex items-center space-x-2">
                         ${testResult.success ? 
                             '<i data-lucide="check-circle" class="h-5 w-5 text-green-600"></i><span class="text-green-600 font-medium">Database Connection: SUCCESS</span>' :
+                            testResult.reason === 'not-authenticated' ?
+                            '<i data-lucide="user-x" class="h-5 w-5 text-orange-600"></i><span class="text-orange-600 font-medium">Authentication Required</span>' :
                             '<i data-lucide="x-circle" class="h-5 w-5 text-red-600"></i><span class="text-red-600 font-medium">Database Connection: FAILED</span>'
                         }
                     </div>
-                    ${testResult.docId ? `<p class="text-sm text-gray-600">Document ID: ${testResult.docId}</p>` : ''}
-                    ${testResult.error ? `<p class="text-sm text-red-600">Error: ${testResult.error}</p>` : ''}
-                    ${testResult.reason === 'not-authenticated' ? '<p class="text-sm text-orange-600">Please log in to test Firestore saving</p>' : ''}
+                    ${testResult.docId ? `<p class="text-sm text-gray-600">✅ Document ID: ${testResult.docId}</p>` : ''}
+                    ${testResult.error ? `<p class="text-sm text-red-600">❌ Error: ${testResult.error}</p>` : ''}
+                    ${testResult.reason === 'not-authenticated' ? `
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                            <h4 class="font-medium text-orange-900 mb-2">🔐 Login Required for Database Testing</h4>
+                            <p class="text-sm text-orange-700 mb-3">To test Firestore database connectivity, you need to be logged in first.</p>
+                            <div class="space-y-2">
+                                <p class="text-sm text-orange-700"><strong>Steps to test:</strong></p>
+                                <ol class="text-sm text-orange-700 list-decimal list-inside space-y-1">
+                                    <li>Go to <a href="login.html" class="underline font-medium">login.html</a> and sign in</li>
+                                    <li>Return to <a href="plan.html" class="underline font-medium">plan.html</a> and fill the form</li>
+                                    <li>Click "Generate Itinerary" to test database saving</li>
+                                </ol>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${testResult.authenticated && testResult.errorType === 'firestore' ? `
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <h4 class="font-medium text-red-900 mb-2">🔥 Firestore Database Error</h4>
+                            <p class="text-sm text-red-700 mb-2">User is authenticated but database save failed.</p>
+                            <p class="text-sm text-red-700"><strong>Possible causes:</strong></p>
+                            <ul class="text-sm text-red-700 list-disc list-inside space-y-1 mt-1">
+                                <li>Firebase rules are too restrictive</li>
+                                <li>Network connectivity issues</li>
+                                <li>Firestore permissions not configured</li>
+                            </ul>
+                        </div>
+                    ` : ''}
                 </div>
             `;
             document.getElementById('tripDetails').innerHTML = testResultsHTML;
@@ -612,6 +666,26 @@
                     <h4 class="font-medium text-blue-900 mb-2">🧪 Testing Mode Active</h4>
                     <p class="text-sm text-blue-700">This is a database connectivity test. Your inputs ${testResult.success ? 'have been saved to' : 'would be saved to'} Firestore database.</p>
                     <p class="text-sm text-blue-700 mt-1">AI itinerary generation is disabled during testing phase.</p>
+                    ${!testResult.authenticated ? `
+                        <div class="mt-3 pt-3 border-t border-blue-200">
+                            <p class="text-sm text-blue-700 mb-2"><strong>Quick Actions:</strong></p>
+                            <div class="flex space-x-2">
+                                <a href="login.html" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    Login First
+                                </a>
+                                <button onclick="window.location.reload()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded text-sm transition-colors">
+                                    Retry Test
+                                </button>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="mt-3 pt-3 border-t border-blue-200">
+                            <p class="text-sm text-blue-700 mb-2"><strong>Test completed as authenticated user!</strong></p>
+                            <button onclick="window.location.reload()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded text-sm transition-colors">
+                                Run Test Again
+                            </button>
+                        </div>
+                    `}
                 </div>
             `;
             
