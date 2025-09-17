@@ -7,6 +7,8 @@ import PlanTrip from './pages/PlanTrip';
 import Itinerary from './pages/Itinerary';
 import Pricing from './pages/Pricing';
 import About from './pages/About';
+import Login from './pages/Login';
+import MyTrips from './pages/MyTrips';
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
             <Route path="/itinerary/:id" element={<Itinerary />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/about" element={<About />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/my-trips" element={<MyTrips />} />
           </Routes>
         </main>
         <Footer />

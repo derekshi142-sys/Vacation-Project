@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - TravelAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYPivjLCBP0Z0b5xKt79spvMGQB9rdkr0",
+            authDomain: "vacation-project-edec5.firebaseapp.com",
+            projectId: "vacation-project-edec5",
+            storageBucket: "vacation-project-edec5.firebasestorage.app",
+            messagingSenderId: "34435716956",
+            appId: "1:34435716956:web:8d85bd50a756de49769399"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+        
+        // Make auth available globally
+        window.auth = auth;
+        window.provider = provider;
+        window.signInWithPopup = signInWithPopup;
+        window.signOut = signOut;
+        window.onAuthStateChanged = onAuthStateChanged;
+        
+        // Auth state change handler
+        onAuthStateChanged(auth, (user) => {
+            const loginBtn = document.getElementById('loginBtn');
+            const userProfile = document.getElementById('userProfile');
+            const mobileLoginBtn = document.getElementById('mobileLoginBtn');
+            const mobileUserProfile = document.getElementById('mobileUserProfile');
+            
+            if (user) {
+                // User is signed in
+                if (loginBtn) loginBtn.style.display = 'none';
+                if (userProfile) userProfile.style.display = 'flex';
+                if (mobileLoginBtn) mobileLoginBtn.style.display = 'none';
+                if (mobileUserProfile) mobileUserProfile.style.display = 'block';
+                
+                // Update desktop profile
+                if (document.getElementById('userName')) {
+                    document.getElementById('userName').textContent = user.displayName || 'User';
+                }
+                if (document.getElementById('userEmail')) {
+                    document.getElementById('userEmail').textContent = user.email || '';
+                }
+                if (user.photoURL && document.getElementById('userAvatar')) {
+                    document.getElementById('userAvatar').src = user.photoURL;
+                }
+                
+                // Update mobile profile
+                if (document.getElementById('mobileUserName')) {
+                    document.getElementById('mobileUserName').textContent = user.displayName || 'User';
+                }
+                if (document.getElementById('mobileUserEmail')) {
+                    document.getElementById('mobileUserEmail').textContent = user.email || '';
+                }
+                if (user.photoURL && document.getElementById('mobileUserAvatar')) {
+                    document.getElementById('mobileUserAvatar').src = user.photoURL;
+                }
+            } else {
+                // User is signed out
+                if (loginBtn) loginBtn.style.display = 'flex';
+                if (userProfile) userProfile.style.display = 'none';
+                if (mobileLoginBtn) mobileLoginBtn.style.display = 'flex';
+                if (mobileUserProfile) mobileUserProfile.style.display = 'none';
+            }
+        });
+        
+        // Google Sign In function
+        window.googleSignIn = async () => {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                console.log('User signed in:', result.user);
+            } catch (error) {
+                console.error('Sign in error:', error);
+                alert('Sign in failed. Please try again.');
+            }
+        };
+        
+        // Sign out function
+        window.googleSignOut = async () => {
+            try {
+                await signOut(auth);
+                console.log('User signed out');
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Sign out error:', error);
+            }
+        };
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 24px; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2 cursor-pointer" onclick="window.location.href='index.html'">
+                    <div class="bg-blue-600 p-2 rounded-lg">
+                        <i data-lucide="plane" class="h-6 w-6 text-white"></i>
+                    </div>
+                    <span class="text-xl font-bold text-gray-900">TravelAI</span>
+                </div>
+                
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                    <a href="plan.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Plan Trip</a>
+                    <a href="pricing.html" class="text-blue-600 bg-blue-50 px-3 py-2 rounded-md text-sm font-medium">Pricing</a>
+                    <a href="about.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">About</a>
+                    <a href="login.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Login</a>
+                </nav>
+                
+                <div class="hidden md:flex items-center space-x-4">
+                    <!-- Google Login Button -->
+                    <button id="loginBtn" onclick="googleSignIn()" class="flex items-center space-x-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        <span>Sign in with Google</span>
+                    </button>
+                    
+                    <!-- User Profile (hidden by default) -->
+                    <div id="userProfile" class="flex items-center space-x-3" style="display: none;">
+                        <img id="userAvatar" src="" alt="User Avatar" class="w-8 h-8 rounded-full">
+                        <div class="text-sm">
+                            <div id="userName" class="font-medium text-gray-900"></div>
+                            <div id="userEmail" class="text-gray-500"></div>
+                        </div>
+                        <button id="logoutBtn" onclick="googleSignOut()" class="text-gray-500 hover:text-gray-700">
+                            <i data-lucide="log-out" class="h-4 w-4"></i>
+                        </button>
+                    </div>
+                    
+                    <button onclick="window.location.href='plan.html'" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                        Start Planning
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="min-h-screen bg-gray-50 py-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Header -->
+                <div class="text-center mb-16">
+                    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h1>
+                    <p class="text-xl text-gray-600 max-w-3xl mx-auto">Pay a tiny fraction of your vacation budget instead of expensive agency fees. Save 90%+ compared to traditional travel planning services.</p>
+                </div>
+
+                <!-- Pricing Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+                    <!-- Free Plan -->
+                    <div class="card relative">
+                        <div class="text-center mb-6">
+                            <h3 class="text-2xl font-bold text-gray-900 mb-2">Free Draft</h3>
+                            <div class="mb-2">
+                                <span class="text-4xl font-bold text-gray-900">$0</span>
+                            </div>
+                            <p class="text-gray-600">Perfect for exploring what's possible</p>
+                        </div>
+                        <ul class="space-y-2 mb-8">
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Basic itinerary outline</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Flight and hotel suggestions</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Daily activity schedule</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Budget estimation</span>
+                            </li>
+                        </ul>
+                        <button onclick="window.location.href='plan.html'" class="block w-full text-center py-3 px-4 rounded-lg font-medium bg-gray-100 hover:bg-gray-200 text-gray-900 transition-all duration-200">
+                            Start Free Draft
+                        </button>
+                    </div>
+
+                    <!-- Standard Plan -->
+                    <div class="card relative ring-2 ring-blue-600 transform scale-105">
+                        <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                            <span class="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
+                                <i data-lucide="star" class="h-4 w-4"></i>
+                                <span>Most Popular</span>
+                            </span>
+                        </div>
+                        <div class="text-center mb-6">
+                            <h3 class="text-2xl font-bold text-gray-900 mb-2">Standard</h3>
+                            <div class="mb-2">
+                                <span class="text-4xl font-bold text-gray-900">0.3-0.7%</span>
+                                <span class="text-gray-600 ml-2">of trip budget</span>
+                            </div>
+                            <p class="text-gray-600">Complete planning with smart automation</p>
+                        </div>
+                        <ul class="space-y-2 mb-8">
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Everything in Free Draft</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Detailed itinerary with maps</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Budget calculation & breakdown</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Google Maps integration</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Professional PDF export</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Basic booking assistance (+0.2%)</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Email support</span>
+                            </li>
+                        </ul>
+                        <button onclick="window.location.href='plan.html'" class="block w-full text-center py-3 px-4 rounded-lg font-medium bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200">
+                            Choose Standard
+                        </button>
+                    </div>
+
+                    <!-- Premium Plan -->
+                    <div class="card relative">
+                        <div class="text-center mb-6">
+                            <h3 class="text-2xl font-bold text-gray-900 mb-2">Premium</h3>
+                            <div class="mb-2">
+                                <span class="text-4xl font-bold text-gray-900">1%</span>
+                                <span class="text-gray-600 ml-2">for trips over $2,000/person/day</span>
+                            </div>
+                            <p class="text-gray-600">White-glove service with concierge support</p>
+                        </div>
+                        <ul class="space-y-2 mb-8">
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Everything in Standard</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Advanced booking (restaurants, events)</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Private transport arrangements</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Concierge support</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Real-time trip adjustments</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Weather & event monitoring</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">Backup plans included</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <i data-lucide="check" class="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span class="text-gray-700 text-sm">24/7 phone support</span>
+                            </li>
+                        </ul>
+                        <button onclick="window.location.href='plan.html'" class="block w-full text-center py-3 px-4 rounded-lg font-medium bg-gray-100 hover:bg-gray-200 text-gray-900 transition-all duration-200">
+                            Go Premium
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cost Comparison -->
+                <div class="mb-16">
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4">See How Much You Save</h2>
+                        <p class="text-xl text-gray-600">Compare our pricing to traditional travel agencies</p>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full bg-white rounded-lg shadow-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-4 text-left font-semibold text-gray-900">Trip Scenario</th>
+                                    <th class="px-6 py-4 text-center font-semibold text-gray-900">Free Draft</th>
+                                    <th class="px-6 py-4 text-center font-semibold text-gray-900">Standard</th>
+                                    <th class="px-6 py-4 text-center font-semibold text-gray-900">Premium</th>
+                                    <th class="px-6 py-4 text-center font-semibold text-red-600">Travel Agency</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-gray-50">
+                                    <td class="px-6 py-4 font-medium text-gray-900">$3,000 Weekend Getaway (2 people)</td>
+                                    <td class="px-6 py-4 text-center text-green-600 font-semibold">$0</td>
+                                    <td class="px-6 py-4 text-center text-blue-600 font-semibold">$9-21</td>
+                                    <td class="px-6 py-4 text-center text-yellow-600 font-semibold">Not applicable</td>
+                                    <td class="px-6 py-4 text-center text-red-600 font-semibold">$300-600</td>
+                                </tr>
+                                <tr class="bg-white">
+                                    <td class="px-6 py-4 font-medium text-gray-900">$8,000 Week in Europe (2 people)</td>
+                                    <td class="px-6 py-4 text-center text-green-600 font-semibold">$0</td>
+                                    <td class="px-6 py-4 text-center text-blue-600 font-semibold">$24-56</td>
+                                    <td class="px-6 py-4 text-center text-yellow-600 font-semibold">Not applicable</td>
+                                    <td class="px-6 py-4 text-center text-red-600 font-semibold">$800-1,600</td>
+                                </tr>
+                                <tr class="bg-gray-50">
+                                    <td class="px-6 py-4 font-medium text-gray-900">$15,000 Luxury Safari (2 people)</td>
+                                    <td class="px-6 py-4 text-center text-green-600 font-semibold">$0</td>
+                                    <td class="px-6 py-4 text-center text-blue-600 font-semibold">$45-105</td>
+                                    <td class="px-6 py-4 text-center text-yellow-600 font-semibold">$150</td>
+                                    <td class="px-6 py-4 text-center text-red-600 font-semibold">$1,500-3,000</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Features Breakdown -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+                    <div class="text-center">
+                        <div class="bg-blue-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="zap" class="h-8 w-8 text-blue-600"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Lightning Fast</h3>
+                        <p class="text-gray-600">Get your complete itinerary in under 2 hours instead of weeks of back-and-forth</p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="bg-green-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="shield" class="h-8 w-8 text-green-600"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">No Hidden Fees</h3>
+                        <p class="text-gray-600">Transparent pricing with no markups on hotels or flights. You pay exactly what we pay.</p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="bg-yellow-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="star" class="h-8 w-8 text-yellow-600"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Satisfaction Guaranteed</h3>
+                        <p class="text-gray-600">Not happy? We'll revise your itinerary until it's perfect or refund your planning fee.</p>
+                    </div>
+                </div>
+
+                <!-- Referral Program -->
+                <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white mb-16">
+                    <div class="text-center">
+                        <h2 class="text-3xl font-bold mb-4">Earn $100 for Every Referral</h2>
+                        <p class="text-xl mb-6 text-blue-100">Know someone planning a vacation? Refer them and earn $100 credit when they book a trip over $1,000</p>
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                            <div class="bg-white/20 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold">$100</div>
+                                <div class="text-sm">Per Referral</div>
+                            </div>
+                            <div class="bg-white/20 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold">No Limit</div>
+                                <div class="text-sm">On Referrals</div>
+                            </div>
+                            <div class="bg-white/20 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold">$1,000+</div>
+                                <div class="text-sm">Minimum Trip</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ -->
+                <div class="mb-16">
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
+                    </div>
+
+                    <div class="max-w-4xl mx-auto">
+                        <div class="space-y-6">
+                            <div class="card">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">How is the percentage calculated?</h3>
+                                <p class="text-gray-600">The fee is calculated based on your total trip budget including flights, accommodation, food, and activities. We only charge when you're completely satisfied with your itinerary.</p>
+                            </div>
+                            <div class="card">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">What if I need to change my plans?</h3>
+                                <p class="text-gray-600">Standard plans include one major revision. Premium plans include unlimited revisions and real-time adjustments during your trip.</p>
+                            </div>
+                            <div class="card">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">Do you charge for cancellations?</h3>
+                                <p class="text-gray-600">No cancellation fees! If you cancel before we start booking, you only pay for the planning service already provided.</p>
+                            </div>
+                            <div class="card">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">How does the booking service work?</h3>
+                                <p class="text-gray-600">We use your credit card to book directly with airlines, hotels, and activity providers. You get all confirmation details and can manage bookings yourself.</p>
+                            </div>
+                            <div class="card">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">What about the referral program?</h3>
+                                <p class="text-gray-600">Refer someone who books a trip over $1,000 and get $100 credit towards your next vacation. No limits on referrals!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CTA -->
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Ready to Save 90% on Travel Planning?</h2>
+                    <p class="text-xl text-gray-600 mb-8">Start with a free draft and see why thousands choose TravelAI</p>
+                    <button onclick="window.location.href='plan.html'" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-all duration-200 transform hover:scale-105">
+                        Get Started Free
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-4 cursor-pointer" onclick="window.location.href='index.html'">
+                        <div class="bg-blue-600 p-2 rounded-lg">
+                            <i data-lucide="plane" class="h-6 w-6 text-white"></i>
+                        </div>
+                        <span class="text-xl font-bold">TravelAI</span>
+                    </div>
+                    <p class="text-gray-300 mb-6 max-w-md">Your trip, planned in minutes. Experience stress-free travel with AI-powered itinerary generation that saves you time and money.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="index.html" class="text-gray-300 hover:text-white transition-colors">Home</a></li>
+                        <li><a href="plan.html" class="text-gray-300 hover:text-white transition-colors">Plan Trip</a></li>
+                        <li><a href="pricing.html" class="text-gray-300 hover:text-white transition-colors">Pricing</a></li>
+                        <li><a href="about.html" class="text-gray-300 hover:text-white transition-colors">About</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact</h3>
+                    <p class="text-gray-300">support@travelai.com</p>
+                    <p class="text-gray-300">San Francisco, CA</p>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center">
+                <p class="text-gray-400 text-sm">© 2024 TravelAI. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

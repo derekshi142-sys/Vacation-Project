@@ -15,7 +15,7 @@ import {
 // Firebase imports
 import { auth, db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 
 const PlanTrip = () => {
   const navigate = useNavigate();
@@ -94,18 +94,21 @@ const PlanTrip = () => {
       console.log('Form data to be saved:', formData);
       console.log('Current user:', user);
       
-      if (!user) {
-        alert('Please log in first to save your travel plan.');
-        setIsLoading(false);
-        return;
+      // Ensure we always have an authenticated user (fallback to anonymous)
+      let effectiveUser = user;
+      if (!effectiveUser) {
+        const credential = await signInAnonymously(auth);
+        effectiveUser = credential.user;
+        setUser(effectiveUser);
+        console.log('Signed in anonymously for persistence:', effectiveUser?.uid);
       }
       
       // Prepare data for Firestore
       const firestoreData = {
         // User information
-        userId: user.uid,
-        userEmail: user.email,
-        userName: user.displayName || user.email,
+        userId: effectiveUser.uid,
+        userEmail: effectiveUser.email || null,
+        userName: (effectiveUser.displayName || effectiveUser.email || 'Anonymous'),
         
         // Form data
         destination: formData.destination,
@@ -151,8 +154,8 @@ const PlanTrip = () => {
         firestoreId: docRef.id
       });
       
-      // Navigate to the HTML results page
-      window.location.href = `/results.html?${queryParams.toString()}`;
+      // Navigate to My Trips React page
+      window.location.href = `/my-trips`;
       
     } catch (error) {
       console.error('❌ Error saving to Firestore:', error);

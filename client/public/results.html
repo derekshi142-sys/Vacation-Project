@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Itinerary - TravelAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="ai-service.js"></script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, addDoc, doc, setDoc, getDocs, query, where, orderBy, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYPivjLCBP0Z0b5xKt79spvMGQB9rdkr0",
+            authDomain: "vacation-project-edec5.firebaseapp.com",
+            projectId: "vacation-project-edec5",
+            storageBucket: "vacation-project-edec5.firebasestorage.app",
+            messagingSenderId: "34435716956",
+            appId: "1:34435716956:web:8d85bd50a756de49769399"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+        
+        // Make auth and firestore available globally
+        window.auth = auth;
+        window.db = db;
+        window.firestoreUtils = {
+            collection,
+            addDoc,
+            doc,
+            setDoc,
+            getDocs,
+            query,
+            where,
+            orderBy,
+            deleteDoc
+        };
+        window.provider = provider;
+        window.signInWithPopup = signInWithPopup;
+        window.signOut = signOut;
+        window.onAuthStateChanged = onAuthStateChanged;
+        
+        // Auth state change handler
+        onAuthStateChanged(auth, (user) => {
+            const loginBtn = document.getElementById('loginBtn');
+            const userProfile = document.getElementById('userProfile');
+            const mobileLoginBtn = document.getElementById('mobileLoginBtn');
+            const mobileUserProfile = document.getElementById('mobileUserProfile');
+            
+            if (user) {
+                // User is signed in
+                if (loginBtn) loginBtn.style.display = 'none';
+                if (userProfile) userProfile.style.display = 'flex';
+                if (mobileLoginBtn) mobileLoginBtn.style.display = 'none';
+                if (mobileUserProfile) mobileUserProfile.style.display = 'block';
+                
+                // Update desktop profile
+                if (document.getElementById('userName')) {
+                    document.getElementById('userName').textContent = user.displayName || 'User';
+                }
+                if (document.getElementById('userEmail')) {
+                    document.getElementById('userEmail').textContent = user.email || '';
+                }
+                if (user.photoURL && document.getElementById('userAvatar')) {
+                    document.getElementById('userAvatar').src = user.photoURL;
+                }
+                
+                // Update mobile profile
+                if (document.getElementById('mobileUserName')) {
+                    document.getElementById('mobileUserName').textContent = user.displayName || 'User';
+                }
+                if (document.getElementById('mobileUserEmail')) {
+                    document.getElementById('mobileUserEmail').textContent = user.email || '';
+                }
+                if (user.photoURL && document.getElementById('mobileUserAvatar')) {
+                    document.getElementById('mobileUserAvatar').src = user.photoURL;
+                }
+            } else {
+                // User is signed out
+                if (loginBtn) loginBtn.style.display = 'flex';
+                if (userProfile) userProfile.style.display = 'none';
+                if (mobileLoginBtn) mobileLoginBtn.style.display = 'flex';
+                if (mobileUserProfile) mobileUserProfile.style.display = 'none';
+            }
+        });
+        
+        // Google Sign In function
+        window.googleSignIn = async () => {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                console.log('User signed in:', result.user);
+            } catch (error) {
+                console.error('Sign in error:', error);
+                alert('Sign in failed. Please try again.');
+            }
+        };
+        
+        // Sign out function
+        window.googleSignOut = async () => {
+            try {
+                await signOut(auth);
+                console.log('User signed out');
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Sign out error:', error);
+            }
+        };
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 24px; }
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2 cursor-pointer" onclick="window.location.href='index.html'">
+                    <div class="bg-blue-600 p-2 rounded-lg">
+                        <i data-lucide="plane" class="h-6 w-6 text-white"></i>
+                    </div>
+                    <span class="text-xl font-bold text-gray-900">TravelAI</span>
+                </div>
+                
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                    <a href="plan.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Plan Trip</a>
+                    <a href="pricing.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Pricing</a>
+                    <a href="about.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">About</a>
+                    <a href="login.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Login</a>
+                </nav>
+                
+                <div class="hidden md:flex items-center space-x-3">
+                    <!-- Login Button (shown when not logged in) -->
+                    <a id="loginBtn" href="login.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                        Login
+                    </a>
+                    
+                    <!-- User Profile Dropdown (shown when logged in) -->
+                    <div id="userProfile" class="relative" style="display: none;">
+                        <button id="profileDropdownBtn" onclick="toggleProfileDropdown()" class="flex items-center space-x-2 text-gray-700 hover:text-gray-900 focus:outline-none">
+                            <img id="userAvatar" src="" alt="User Avatar" class="w-8 h-8 rounded-full border-2 border-gray-200">
+                            <span id="userName" class="text-sm font-medium"></span>
+                            <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                            <div class="px-4 py-3 border-b border-gray-100">
+                                <div class="flex items-center space-x-3">
+                                    <img id="dropdownAvatar" src="" alt="User Avatar" class="w-10 h-10 rounded-full">
+                                    <div>
+                                        <div id="dropdownName" class="font-medium text-gray-900"></div>
+                                        <div id="dropdownEmail" class="text-sm text-gray-500"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="py-1">
+                                <a href="#" onclick="showProfile()" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i data-lucide="user" class="h-4 w-4 mr-3"></i>
+                                    Profile Settings
+                                </a>
+                                <a href="#" onclick="showMyTrips()" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i data-lucide="map" class="h-4 w-4 mr-3"></i>
+                                    My Trips
+                                </a>
+                                <a href="#" onclick="showBookings()" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i data-lucide="calendar" class="h-4 w-4 mr-3"></i>
+                                    Bookings
+                                </a>
+                                <div class="border-t border-gray-100 my-1"></div>
+                                <button onclick="googleSignOut()" class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                    <i data-lucide="log-out" class="h-4 w-4 mr-3"></i>
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="shareItinerary()" class="bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                        Share
+                    </button>
+                    <button onclick="exportToPDF()" class="bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                        Export PDF
+                    </button>
+                </div>
+                
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button onclick="toggleMobileMenu()" class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100">
+                        <i data-lucide="menu" class="h-6 w-6"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile menu -->
+            <div id="mobileMenu" class="hidden md:hidden">
+                <div class="px-2 pt-2 pb-3 space-y-1 bg-white border-t">
+                    <a href="index.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600">Home</a>
+                    <a href="plan.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600">Plan Trip</a>
+                    <a href="pricing.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600">Pricing</a>
+                    <a href="about.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600">About</a>
+                    <a href="login.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600">Login</a>
+                    
+                    <!-- Mobile Google Login -->
+                    <button id="mobileLoginBtn" onclick="googleSignIn()" class="flex items-center justify-center space-x-2 w-full mt-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        <span>Sign in with Google</span>
+                    </button>
+                    
+                    <!-- Mobile User Profile (hidden by default) -->
+                    <div id="mobileUserProfile" class="mt-4 p-3 bg-gray-50 rounded-lg" style="display: none;">
+                        <div class="flex items-center space-x-3">
+                            <img id="mobileUserAvatar" src="" alt="User Avatar" class="w-10 h-10 rounded-full">
+                            <div class="flex-1">
+                                <div id="mobileUserName" class="font-medium text-gray-900"></div>
+                                <div id="mobileUserEmail" class="text-sm text-gray-500"></div>
+                            </div>
+                            <button id="mobileLogoutBtn" onclick="googleSignOut()" class="text-gray-500 hover:text-gray-700">
+                                <i data-lucide="log-out" class="h-5 w-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button onclick="shareItinerary()" class="block w-full text-center mt-4 bg-gray-200 text-gray-900 py-2 px-4 rounded-lg">Share</button>
+                    <button onclick="exportToPDF()" class="block w-full text-center mt-2 bg-gray-200 text-gray-900 py-2 px-4 rounded-lg">Export PDF</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="min-h-screen bg-gray-50 py-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Header -->
+                <div class="card mb-8">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div class="mb-4 md:mb-0">
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2" id="tripTitle">Your Adventure Awaits</h1>
+                            <div class="flex flex-wrap items-center space-x-4 text-gray-600" id="tripDetails">
+                                <!-- Trip details will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-3">
+                            <button onclick="shareItinerary()" class="bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                                Share
+                            </button>
+                            <button onclick="exportToPDF()" class="bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                                Export PDF
+                            </button>
+                            <button onclick="window.location.href='plan.html'" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                                Edit Trip
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    <!-- Sidebar -->
+                    <div class="lg:col-span-1">
+                        <!-- Budget Breakdown -->
+                        <div class="card mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Budget Breakdown</h3>
+                            <div class="space-y-3" id="budgetBreakdown">
+                                <!-- Budget breakdown will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Flight Information -->
+                        <div class="card mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i data-lucide="plane" class="h-5 w-5 mr-2"></i>
+                                Flights
+                            </h3>
+                            <div class="space-y-4" id="flightInfo">
+                                <!-- Flight info will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Day Navigation -->
+                        <div class="card">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Days</h3>
+                            <div class="space-y-2" id="dayNavigation">
+                                <!-- Day navigation will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="lg:col-span-3">
+                        <div id="itineraryContent" class="space-y-6">
+                            <!-- Itinerary content will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upgrade CTA -->
+                <div class="mt-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white text-center">
+                    <h2 class="text-2xl font-bold mb-4">Love Your Itinerary?</h2>
+                    <p class="text-lg mb-6 text-blue-100">Upgrade to book everything automatically and get detailed maps, confirmations, and concierge support</p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button onclick="window.location.href='pricing.html'" class="bg-white text-blue-600 font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-colors">View Pricing</button>
+                        <button class="bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-semibold py-3 px-6 rounded-lg transition-colors">Book This Trip</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-4 cursor-pointer" onclick="window.location.href='index.html'">
+                        <div class="bg-blue-600 p-2 rounded-lg">
+                            <i data-lucide="plane" class="h-6 w-6 text-white"></i>
+                        </div>
+                        <span class="text-xl font-bold">TravelAI</span>
+                    </div>
+                    <p class="text-gray-300 mb-6 max-w-md">Your trip, planned in minutes. Experience stress-free travel with AI-powered itinerary generation that saves you time and money.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="index.html" class="text-gray-300 hover:text-white transition-colors">Home</a></li>
+                        <li><a href="plan.html" class="text-gray-300 hover:text-white transition-colors">Plan Trip</a></li>
+                        <li><a href="pricing.html" class="text-gray-300 hover:text-white transition-colors">Pricing</a></li>
+                        <li><a href="about.html" class="text-gray-300 hover:text-white transition-colors">About</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact</h3>
+                    <p class="text-gray-300">support@travelai.com</p>
+                    <p class="text-gray-300">San Francisco, CA</p>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center">
+                <p class="text-gray-400 text-sm">© 2024 TravelAI. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Profile dropdown toggle
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('profileDropdown');
+            const dropdownBtn = document.getElementById('profileDropdownBtn');
+            
+            if (dropdown && dropdownBtn && !dropdown.contains(event.target) && !dropdownBtn.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Profile menu functions
+        function showProfile() {
+            alert('Profile Settings - Coming Soon!');
+            document.getElementById('profileDropdown').classList.add('hidden');
+        }
+
+        function showMyTrips() {
+            alert('My Trips - Coming Soon!');
+            document.getElementById('profileDropdown').classList.add('hidden');
+        }
+
+        function showBookings() {
+            alert('Bookings - Coming Soon!');
+            document.getElementById('profileDropdown').classList.add('hidden');
+        }
+
+        // Global variables
+        let formData = {};
+        let currentDay = 1;
+
+        // Parse URL parameters
+        function parseURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            formData = {};
+            
+            for (const [key, value] of urlParams) {
+                try {
+                    formData[key] = JSON.parse(value);
+                } catch (e) {
+                    formData[key] = value;
+                }
+            }
+        }
+
+        // Generate itinerary with AI (TESTING MODE - Save inputs only)
+        async function generateItinerary() {
+            parseURLParams();
+            
+            const startDate = new Date(formData.startDate);
+            const endDate = new Date(formData.endDate);
+            const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            const totalBudget = parseInt(formData.budget) || 5000;
+            
+            // Show loading state
+            document.getElementById('tripTitle').textContent = 'Testing Firestore Database...';
+            document.getElementById('tripDetails').innerHTML = '<div class="flex items-center space-x-2"><div class="loading-spinner"></div><span>Saving your inputs to database...</span></div>';
+            
+            // TEST MODE: Save only user inputs to Firestore
+            await testFirestoreSave(formData, duration, totalBudget);
+            
+            // Show test results instead of generating AI itinerary
+            displayTestResults(formData, duration, totalBudget);
+        }
+
+        // TEST FUNCTION: Save only user inputs to Firestore
+        async function testFirestoreSave(formData, duration, totalBudget) {
+            try {
+                // Wait a moment for auth state to be ready
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                const user = window.auth.currentUser;
+                console.log('Current auth state:', user ? 'Authenticated' : 'Not authenticated');
+                console.log('User details:', user ? { uid: user.uid, email: user.email, displayName: user.displayName } : 'No user');
+                
+                // Create test data with only user inputs
+                const testData = {
+                    // User authentication info
+                    userId: user ? user.uid : 'anonymous',
+                    userEmail: user ? user.email : 'not-logged-in',
+                    userName: user ? (user.displayName || user.email) : 'anonymous',
+                    
+                    // Original user inputs from the form
+                    destination: formData.destination,
+                    startDate: formData.startDate,
+                    endDate: formData.endDate,
+                    duration: duration,
+                    budget: formData.budget,
+                    budgetType: formData.budgetType,
+                    travelers: formData.travelers,
+                    travelStyle: formData.travelStyle,
+                    interests: formData.interests,
+                    foodPreferences: formData.foodPreferences,
+                    accommodationType: formData.accommodationType,
+                    customActivities: formData.customActivities,
+                    
+                    // Metadata
+                    testMode: true,
+                    createdAt: new Date().toISOString(),
+                    timestamp: Date.now()
+                };
+
+                console.log('Attempting to save test data to Firestore:', testData);
+
+                if (user) {
+                    try {
+                        // Save to Firestore
+                        const docRef = await window.firestoreUtils.addDoc(
+                            window.firestoreUtils.collection(window.db, 'user-inputs-test'), 
+                            testData
+                        );
+                        console.log('✅ SUCCESS: Test data saved to Firestore with ID:', docRef.id);
+                        return { success: true, docId: docRef.id, data: testData, authenticated: true };
+                    } catch (firestoreError) {
+                        console.error('❌ FIRESTORE ERROR:', firestoreError);
+                        return { 
+                            success: false, 
+                            error: firestoreError.message, 
+                            data: testData, 
+                            authenticated: true,
+                            errorType: 'firestore'
+                        };
+                    }
+                } else {
+                    console.log('⚠️ User not authenticated - would save to Firestore if logged in');
+                    return { 
+                        success: false, 
+                        reason: 'not-authenticated', 
+                        data: testData, 
+                        authenticated: false 
+                    };
+                }
+
+            } catch (error) {
+                console.error('❌ ERROR: Failed to save test data to Firestore:', error);
+                return { 
+                    success: false, 
+                    error: error.message, 
+                    data: null, 
+                    authenticated: false,
+                    errorType: 'general'
+                };
+            }
+        }
+
+        // Display test results instead of AI itinerary
+        async function displayTestResults(formData, duration, totalBudget) {
+            const testResult = await testFirestoreSave(formData, duration, totalBudget);
+            
+            // Update page title
+            document.getElementById('tripTitle').textContent = 'Firestore Database Test Results';
+            
+            // Create test results display
+            const testResultsHTML = `
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-2">
+                        ${testResult.success ? 
+                            '<i data-lucide="check-circle" class="h-5 w-5 text-green-600"></i><span class="text-green-600 font-medium">Database Connection: SUCCESS</span>' :
+                            testResult.reason === 'not-authenticated' ?
+                            '<i data-lucide="user-x" class="h-5 w-5 text-orange-600"></i><span class="text-orange-600 font-medium">Authentication Required</span>' :
+                            '<i data-lucide="x-circle" class="h-5 w-5 text-red-600"></i><span class="text-red-600 font-medium">Database Connection: FAILED</span>'
+                        }
+                    </div>
+                    ${testResult.docId ? `<p class="text-sm text-gray-600">✅ Document ID: ${testResult.docId}</p>` : ''}
+                    ${testResult.error ? `<p class="text-sm text-red-600">❌ Error: ${testResult.error}</p>` : ''}
+                    ${testResult.reason === 'not-authenticated' ? `
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                            <h4 class="font-medium text-orange-900 mb-2">🔐 Login Required for Database Testing</h4>
+                            <p class="text-sm text-orange-700 mb-3">To test Firestore database connectivity, you need to be logged in first.</p>
+                            <div class="space-y-2">
+                                <p class="text-sm text-orange-700"><strong>Steps to test:</strong></p>
+                                <ol class="text-sm text-orange-700 list-decimal list-inside space-y-1">
+                                    <li>Go to <a href="login.html" class="underline font-medium">login.html</a> and sign in</li>
+                                    <li>Return to <a href="plan.html" class="underline font-medium">plan.html</a> and fill the form</li>
+                                    <li>Click "Generate Itinerary" to test database saving</li>
+                                </ol>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${testResult.authenticated && testResult.errorType === 'firestore' ? `
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <h4 class="font-medium text-red-900 mb-2">🔥 Firestore Database Error</h4>
+                            <p class="text-sm text-red-700 mb-2">User is authenticated but database save failed.</p>
+                            <p class="text-sm text-red-700"><strong>Possible causes:</strong></p>
+                            <ul class="text-sm text-red-700 list-disc list-inside space-y-1 mt-1">
+                                <li>Firebase rules are too restrictive</li>
+                                <li>Network connectivity issues</li>
+                                <li>Firestore permissions not configured</li>
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            document.getElementById('tripDetails').innerHTML = testResultsHTML;
+            
+            // Display user inputs that were saved/would be saved
+            const userInputsHTML = `
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i data-lucide="database" class="h-5 w-5 mr-2"></i>
+                        User Inputs ${testResult.success ? 'Saved to Firestore' : 'Ready for Database'}
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="map-pin" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Destination</p>
+                                    <p class="font-medium text-gray-900">${formData.destination || 'Not specified'}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="calendar" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Travel Dates</p>
+                                    <p class="font-medium text-gray-900">${formData.startDate || 'Not specified'} to ${formData.endDate || 'Not specified'}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="clock" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Duration</p>
+                                    <p class="font-medium text-gray-900">${duration} days</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="dollar-sign" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Budget</p>
+                                    <p class="font-medium text-gray-900">$${formData.budget || 'Not specified'} (${formData.budgetType || 'total'})</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="users" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Travelers</p>
+                                    <p class="font-medium text-gray-900">${formData.travelers || 'Not specified'}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="compass" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Travel Style</p>
+                                    <p class="font-medium text-gray-900">${formData.travelStyle || 'Not specified'}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="heart" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Interests</p>
+                                    <p class="font-medium text-gray-900">${Array.isArray(formData.interests) ? formData.interests.join(', ') : (formData.interests || 'Not specified')}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="bed" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Accommodation</p>
+                                    <p class="font-medium text-gray-900">${formData.accommodationType || 'Not specified'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ${formData.customActivities ? `
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="zap" class="h-4 w-4 text-blue-600"></i>
+                                <div>
+                                    <p class="text-sm text-gray-600">Custom Activities</p>
+                                    <p class="font-medium text-gray-900">${formData.customActivities}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-medium text-blue-900 mb-2">🧪 Testing Mode Active</h4>
+                    <p class="text-sm text-blue-700">This is a database connectivity test. Your inputs ${testResult.success ? 'have been saved to' : 'would be saved to'} Firestore database.</p>
+                    <p class="text-sm text-blue-700 mt-1">AI itinerary generation is disabled during testing phase.</p>
+                    ${!testResult.authenticated ? `
+                        <div class="mt-3 pt-3 border-t border-blue-200">
+                            <p class="text-sm text-blue-700 mb-2"><strong>Quick Actions:</strong></p>
+                            <div class="flex space-x-2">
+                                <a href="login.html" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    Login First
+                                </a>
+                                <button onclick="window.location.reload()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded text-sm transition-colors">
+                                    Retry Test
+                                </button>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="mt-3 pt-3 border-t border-blue-200">
+                            <p class="text-sm text-blue-700 mb-2"><strong>Test completed as authenticated user!</strong></p>
+                            <button onclick="window.location.reload()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded text-sm transition-colors">
+                                Run Test Again
+                            </button>
+                        </div>
+                    `}
+                </div>
+            `;
+            
+            // Display the results
+            document.getElementById('itineraryContent').innerHTML = userInputsHTML;
+            
+            // Reinitialize Lucide icons
+            lucide.createIcons();
+        }
+
+        // Generate AI itinerary data
+        function generateAIItineraryData(formData, duration, totalBudget, startDate) {
+            const destination = formData.destination.toLowerCase();
+            
+            // Destination-specific data
+            const destinations = {
+                'paris': {
+                    activities: ['Louvre Museum', 'Eiffel Tower', 'Notre-Dame', 'Champs-Élysées', 'Montmartre', 'Seine River Cruise'],
+                    restaurants: ['Le Comptoir du Relais', 'L\'As du Fallafel', 'Bistrot Paul Bert', 'Le Procope', 'Café de Flore'],
+                    themes: ['Romantic Paris', 'Art & Culture', 'Food & Wine', 'Historic Paris', 'Fashion & Shopping']
+                },
+                'tokyo': {
+                    activities: ['Senso-ji Temple', 'Tokyo Skytree', 'Shibuya Crossing', 'Tsukiji Fish Market', 'Meiji Shrine', 'Harajuku District'],
+                    restaurants: ['Sukiyabashi Jiro', 'Narisawa', 'Tsuta', 'Nakamura', 'Sushi Dai'],
+                    themes: ['Modern Tokyo', 'Traditional Culture', 'Food Adventure', 'Shopping & Fashion', 'Technology & Innovation']
+                },
+                'new york': {
+                    activities: ['Central Park', 'Statue of Liberty', 'Times Square', 'Brooklyn Bridge', 'High Line', 'Metropolitan Museum'],
+                    restaurants: ['Le Bernardin', 'Eleven Madison Park', 'Peter Luger', 'Katz\'s Delicatessen', 'Joe\'s Pizza'],
+                    themes: ['City That Never Sleeps', 'Art & Culture', 'Food Scene', 'Broadway & Entertainment', 'Shopping & Fashion']
+                }
+            };
+            
+            const destData = destinations[destination] || {
+                activities: ['City Walking Tour', 'Local Market Visit', 'Historic District', 'Scenic Viewpoint', 'Cultural Center'],
+                restaurants: ['Local Bistro', 'Traditional Restaurant', 'Popular Cafe', 'Fine Dining', 'Street Food'],
+                themes: ['City Discovery', 'Cultural Experience', 'Local Life', 'Historic Tour', 'Modern Exploration']
+            };
+            
+            // Calculate budget breakdown based on travel style
+            const budgetMultipliers = {
+                budget: { flights: 0.25, accommodation: 0.20, food: 0.20, activities: 0.20, transportation: 0.15 },
+                balanced: { flights: 0.30, accommodation: 0.25, food: 0.25, activities: 0.15, transportation: 0.05 },
+                luxury: { flights: 0.20, accommodation: 0.40, food: 0.25, activities: 0.10, transportation: 0.05 }
+            };
+            
+            const style = budgetMultipliers[formData.travelStyle] || budgetMultipliers.balanced;
+            const budgetBreakdown = {
+                flights: Math.round(totalBudget * style.flights),
+                accommodation: Math.round(totalBudget * style.accommodation),
+                food: Math.round(totalBudget * style.food),
+                activities: Math.round(totalBudget * style.activities),
+                transportation: Math.round(totalBudget * style.transportation)
+            };
+            
+            // Generate daily itinerary
+            const dailyItinerary = [];
+            for (let i = 0; i < duration; i++) {
+                const dayDate = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+                const theme = destData.themes[i % destData.themes.length];
+                
+                // Select activities based on interests
+                let morningActivity = destData.activities[Math.floor(Math.random() * destData.activities.length)];
+                let afternoonActivity = destData.activities[Math.floor(Math.random() * destData.activities.length)];
+                
+                if (formData.interests && formData.interests.length > 0) {
+                    const interestActivities = {
+                        culture: destData.activities.filter(a => a.includes('Museum') || a.includes('Temple') || a.includes('Shrine')),
+                        food: destData.activities.filter(a => a.includes('Market') || a.includes('Food')),
+                        nature: destData.activities.filter(a => a.includes('Park') || a.includes('Garden')),
+                        adventure: destData.activities.filter(a => a.includes('Bridge') || a.includes('Tower'))
+                    };
+                    
+                    for (const interest of formData.interests) {
+                        if (interestActivities[interest] && interestActivities[interest].length > 0) {
+                            morningActivity = interestActivities[interest][Math.floor(Math.random() * interestActivities[interest].length)];
+                            break;
+                        }
+                    }
+                }
+                
+                // Meal costs based on travel style
+                const mealCosts = {
+                    budget: { breakfast: 0.02, lunch: 0.03, dinner: 0.05 },
+                    balanced: { breakfast: 0.02, lunch: 0.04, dinner: 0.06 },
+                    luxury: { breakfast: 0.03, lunch: 0.05, dinner: 0.10 }
+                };
+                const costs = mealCosts[formData.travelStyle] || mealCosts.balanced;
+                
+                dailyItinerary.push({
+                    day: i + 1,
+                    date: dayDate.toISOString().split('T')[0],
+                    theme: theme,
+                    activities: [
+                        {
+                            time: '9:00 AM',
+                            activity: morningActivity,
+                            location: `${formData.destination} City Center`,
+                            cost: Math.round(totalBudget * 0.05),
+                            duration: '2-3 hours',
+                            notes: 'Start your day with this must-see attraction'
+                        },
+                        {
+                            time: '2:00 PM',
+                            activity: afternoonActivity,
+                            location: `${formData.destination} Main District`,
+                            cost: Math.round(totalBudget * 0.07),
+                            duration: '3-4 hours',
+                            notes: 'Afternoon highlight activity'
+                        }
+                    ],
+                    meals: {
+                        breakfast: {
+                            restaurant: 'Local Morning Cafe',
+                            cuisine: 'Continental',
+                            cost: Math.round(totalBudget * costs.breakfast),
+                            location: 'Near hotel'
+                        },
+                        lunch: {
+                            restaurant: destData.restaurants[Math.floor(Math.random() * destData.restaurants.length)],
+                            cuisine: 'Local',
+                            cost: Math.round(totalBudget * costs.lunch),
+                            location: 'City center'
+                        },
+                        dinner: {
+                            restaurant: destData.restaurants[Math.floor(Math.random() * destData.restaurants.length)],
+                            cuisine: 'Fine Dining',
+                            cost: Math.round(totalBudget * costs.dinner),
+                            location: 'Entertainment district'
+                        }
+                    },
+                    transportation: {
+                        method: formData.travelStyle === 'luxury' ? 'Private car' : 'Public transport',
+                        cost: formData.travelStyle === 'luxury' ? Math.round(totalBudget * 0.02) : Math.round(totalBudget * 0.005),
+                        notes: 'Daily transport within city'
+                    }
+                });
+            }
+            
+            return {
+                summary: {
+                    destination: formData.destination,
+                    duration: duration,
+                    totalBudget: totalBudget,
+                    budgetBreakdown: budgetBreakdown
+                },
+                flights: {
+                    outbound: {
+                        airline: ['Delta', 'United', 'American', 'Lufthansa', 'Air France'][Math.floor(Math.random() * 5)],
+                        price: Math.round(totalBudget * 0.15),
+                        duration: destination.includes('paris') ? '8-10 hours' : destination.includes('tokyo') ? '12-14 hours' : '6-8 hours',
+                        notes: 'Book 2-3 months in advance for best prices'
+                    },
+                    return: {
+                        airline: ['Delta', 'United', 'American', 'Lufthansa', 'Air France'][Math.floor(Math.random() * 5)],
+                        price: Math.round(totalBudget * 0.15),
+                        duration: destination.includes('paris') ? '8-10 hours' : destination.includes('tokyo') ? '12-14 hours' : '6-8 hours',
+                        notes: 'Return flight included'
+                    }
+                },
+                accommodation: [{
+                    name: ['City Center Hotel', 'Boutique Hotel', 'Business Hotel'][Math.floor(Math.random() * 3)],
+                    type: formData.accommodationType,
+                    pricePerNight: Math.round((totalBudget * 0.25) / duration),
+                    rating: 4.2 + Math.random() * 0.8,
+                    location: 'City Center',
+                    amenities: ['WiFi', 'Breakfast', 'Gym', 'Pool', 'Spa']
+                }],
+                dailyItinerary: dailyItinerary,
+                tips: [
+                    `Best time to visit ${formData.destination} is during shoulder season for fewer crowds`,
+                    'Book accommodations early for better rates',
+                    'Learn basic local phrases to enhance your experience',
+                    'Keep copies of important documents in separate locations',
+                    'Check visa requirements well in advance',
+                    'Pack weather-appropriate clothing and comfortable walking shoes'
+                ],
+                emergencyInfo: {
+                    embassy: 'Contact your local embassy for assistance',
+                    hospitalNearby: 'Research nearest hospital and medical facilities',
+                    emergencyNumbers: 'Local emergency numbers: 911 (US), 112 (EU), 110 (Japan)'
+                }
+            };
+        }
+        
+        // Display AI-generated itinerary
+        function displayAIItinerary(aiItinerary, duration, totalBudget, startDate) {
+            // Update trip title and details
+            document.getElementById('tripTitle').textContent = `${aiItinerary.summary.destination} Adventure`;
+            
+            const detailsHTML = `
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="calendar" class="h-4 w-4"></i>
+                    <span>${aiItinerary.summary.duration} days</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="users" class="h-4 w-4"></i>
+                    <span>${formData.travelers} travelers</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="dollar-sign" class="h-4 w-4"></i>
+                    <span>$${aiItinerary.summary.totalBudget.toLocaleString()}</span>
+                </div>
+            `;
+            document.getElementById('tripDetails').innerHTML = detailsHTML;
+            
+            // Save itinerary to history
+            saveItineraryToHistory(aiItinerary, formData).catch(error => {
+                console.error('Error saving itinerary:', error);
+            });
+            
+            // Display AI budget breakdown
+            if (aiItinerary.summary.budgetBreakdown) {
+                const budgetBreakdown = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Flights</span>
+                        <span class="font-semibold">$${aiItinerary.summary.budgetBreakdown.flights.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Accommodation</span>
+                        <span class="font-semibold">$${aiItinerary.summary.budgetBreakdown.accommodation.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Food</span>
+                        <span class="font-semibold">$${aiItinerary.summary.budgetBreakdown.food.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Activities</span>
+                        <span class="font-semibold">$${aiItinerary.summary.budgetBreakdown.activities.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Transportation</span>
+                        <span class="font-semibold">$${aiItinerary.summary.budgetBreakdown.transportation.toLocaleString()}</span>
+                    </div>
+                    <div class="border-t pt-3 flex justify-between items-center font-bold">
+                        <span>Total</span>
+                        <span>$${aiItinerary.summary.totalBudget.toLocaleString()}</span>
+                    </div>
+                `;
+                document.getElementById('budgetBreakdown').innerHTML = budgetBreakdown;
+            }
+            
+            // Display AI flight info
+            if (aiItinerary.flights) {
+                const flightInfo = `
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">Outbound</div>
+                        <div class="text-sm text-gray-600">${aiItinerary.flights.outbound.airline} - $${aiItinerary.flights.outbound.price.toLocaleString()}</div>
+                        <div class="text-xs text-gray-500">${aiItinerary.flights.outbound.duration}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">Return</div>
+                        <div class="text-sm text-gray-600">${aiItinerary.flights.return.airline} - $${aiItinerary.flights.return.price.toLocaleString()}</div>
+                        <div class="text-xs text-gray-500">${aiItinerary.flights.return.duration}</div>
+                    </div>
+                `;
+                document.getElementById('flightInfo').innerHTML = flightInfo;
+            }
+            
+            // Generate day navigation
+            let dayNavHTML = '';
+            for (let i = 1; i <= duration; i++) {
+                const dayDate = new Date(startDate.getTime() + (i - 1) * 24 * 60 * 60 * 1000);
+                const dateStr = dayDate.toISOString().split('T')[0];
+                const isActive = i === currentDay ? 'bg-blue-100 text-blue-700 border-blue-200' : 'hover:bg-gray-100 text-gray-700';
+                
+                dayNavHTML += `
+                    <button onclick="showDay(${i})" class="w-full text-left p-3 rounded-lg transition-colors ${isActive}">
+                        <div class="font-medium">Day ${i}</div>
+                        <div class="text-sm opacity-75">${dateStr}</div>
+                        <div class="text-xs opacity-60">${aiItinerary.dailyItinerary?.[i-1]?.theme || getThemeForDay(i, duration)}</div>
+                    </button>
+                `;
+            }
+            document.getElementById('dayNavigation').innerHTML = dayNavHTML;
+            
+            // Generate AI itinerary content
+            generateAIItineraryContent(aiItinerary, duration, totalBudget, startDate);
+        }
+        
+        // Enhanced mock itinerary when AI is not available
+        function generateEnhancedMockItinerary(duration, totalBudget, startDate) {
+            // Update trip title and details
+            document.getElementById('tripTitle').textContent = `${formData.destination} Adventure`;
+            
+            const detailsHTML = `
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="calendar" class="h-4 w-4"></i>
+                    <span>${duration} days</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="users" class="h-4 w-4"></i>
+                    <span>${formData.travelers} travelers</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="dollar-sign" class="h-4 w-4"></i>
+                    <span>$${totalBudget.toLocaleString()}</span>
+                </div>
+            `;
+            document.getElementById('tripDetails').innerHTML = detailsHTML;
+            
+            // Generate budget breakdown
+            const budgetBreakdown = `
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Flights</span>
+                    <span class="font-semibold">$${Math.round(totalBudget * 0.3).toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Accommodation</span>
+                    <span class="font-semibold">$${Math.round(totalBudget * 0.25).toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Food</span>
+                    <span class="font-semibold">$${Math.round(totalBudget * 0.25).toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Activities</span>
+                    <span class="font-semibold">$${Math.round(totalBudget * 0.15).toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Transportation</span>
+                    <span class="font-semibold">$${Math.round(totalBudget * 0.05).toLocaleString()}</span>
+                </div>
+                <div class="border-t pt-3 flex justify-between items-center font-bold">
+                    <span>Total</span>
+                    <span>$${totalBudget.toLocaleString()}</span>
+                </div>
+            `;
+            document.getElementById('budgetBreakdown').innerHTML = budgetBreakdown;
+            
+            // Generate flight info
+            const flightInfo = `
+                <div>
+                    <div class="text-sm font-medium text-gray-900">Outbound</div>
+                    <div class="text-sm text-gray-600">Major Airline - $${Math.round(totalBudget * 0.15).toLocaleString()}</div>
+                    <div class="text-xs text-gray-500">6-8 hours</div>
+                </div>
+                <div>
+                    <div class="text-sm font-medium text-gray-900">Return</div>
+                    <div class="text-sm text-gray-600">Major Airline - $${Math.round(totalBudget * 0.15).toLocaleString()}</div>
+                    <div class="text-xs text-gray-500">6-8 hours</div>
+                </div>
+            `;
+            document.getElementById('flightInfo').innerHTML = flightInfo;
+            
+            // Generate day navigation
+            let dayNavHTML = '';
+            for (let i = 1; i <= duration; i++) {
+                const dayDate = new Date(startDate.getTime() + (i - 1) * 24 * 60 * 60 * 1000);
+                const dateStr = dayDate.toISOString().split('T')[0];
+                const isActive = i === currentDay ? 'bg-blue-100 text-blue-700 border-blue-200' : 'hover:bg-gray-100 text-gray-700';
+                
+                dayNavHTML += `
+                    <button onclick="showDay(${i})" class="w-full text-left p-3 rounded-lg transition-colors ${isActive}">
+                        <div class="font-medium">Day ${i}</div>
+                        <div class="text-sm opacity-75">${dateStr}</div>
+                        <div class="text-xs opacity-60">${getThemeForDay(i, duration)}</div>
+                    </button>
+                `;
+            }
+            document.getElementById('dayNavigation').innerHTML = dayNavHTML;
+            
+            // Generate itinerary content
+            generateItineraryContent(duration, totalBudget, startDate);
+        }
+
+        function generateItineraryContent(duration, totalBudget, startDate) {
+            let itineraryHTML = '';
+            
+            for (let i = 1; i <= duration; i++) {
+                const dayDate = new Date(startDate.getTime() + (i - 1) * 24 * 60 * 60 * 1000);
+                const dateStr = dayDate.toISOString().split('T')[0];
+                const isVisible = i === currentDay ? '' : 'hidden';
+                
+                itineraryHTML += `
+                    <div id="day${i}" class="day-content ${isVisible}">
+                        <div class="card">
+                            <div class="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-gray-900">Day ${i}</h2>
+                                    <p class="text-gray-600">${dateStr} • ${getThemeForDay(i, duration)}</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm text-gray-500">Daily Budget</div>
+                                    <div class="font-semibold">$${Math.round(totalBudget * 0.15 / duration).toLocaleString()}</div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i data-lucide="camera" class="h-5 w-5 mr-2"></i>
+                                    Activities
+                                </h3>
+                                
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center space-x-3 mb-2">
+                                                <div class="bg-blue-100 text-blue-600 px-2 py-1 rounded text-sm font-medium">9:00 AM</div>
+                                                <h4 class="font-semibold text-gray-900">${getActivityForInterest(formData.interests?.[0] || 'culture', 'morning')}</h4>
+                                            </div>
+                                            <div class="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                                <div class="flex items-center space-x-1">
+                                                    <i data-lucide="map-pin" class="h-4 w-4"></i>
+                                                    <span>${formData.destination} City Center</span>
+                                                </div>
+                                                <div class="flex items-center space-x-1">
+                                                    <i data-lucide="clock" class="h-4 w-4"></i>
+                                                    <span>2-3 hours</span>
+                                                </div>
+                                            </div>
+                                            <p class="text-sm text-gray-600">Start your day with this must-see attraction</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="font-semibold text-gray-900">$${Math.round(totalBudget * 0.05).toLocaleString()}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center space-x-3 mb-2">
+                                                <div class="bg-blue-100 text-blue-600 px-2 py-1 rounded text-sm font-medium">2:00 PM</div>
+                                                <h4 class="font-semibold text-gray-900">${getActivityForInterest(formData.interests?.[1] || formData.interests?.[0] || 'food', 'afternoon')}</h4>
+                                            </div>
+                                            <div class="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                                <div class="flex items-center space-x-1">
+                                                    <i data-lucide="map-pin" class="h-4 w-4"></i>
+                                                    <span>${formData.destination} Main District</span>
+                                                </div>
+                                                <div class="flex items-center space-x-1">
+                                                    <i data-lucide="clock" class="h-4 w-4"></i>
+                                                    <span>3-4 hours</span>
+                                                </div>
+                                            </div>
+                                            <p class="text-sm text-gray-600">Afternoon highlight activity</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="font-semibold text-gray-900">$${Math.round(totalBudget * 0.07).toLocaleString()}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i data-lucide="utensils" class="h-5 w-5 mr-2"></i>
+                                    Meals
+                                </h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="font-semibold text-gray-900 mb-2">Breakfast</div>
+                                        <div class="text-sm text-gray-600 mb-1">Local Morning Cafe</div>
+                                        <div class="text-sm text-gray-500 mb-2">Continental • Near hotel</div>
+                                        <div class="font-semibold text-gray-900">$${Math.round(totalBudget * 0.02).toLocaleString()}</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="font-semibold text-gray-900 mb-2">Lunch</div>
+                                        <div class="text-sm text-gray-600 mb-1">${formData.destination} Bistro</div>
+                                        <div class="text-sm text-gray-500 mb-2">Local • City center</div>
+                                        <div class="font-semibold text-gray-900">$${Math.round(totalBudget * 0.04).toLocaleString()}</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="font-semibold text-gray-900 mb-2">Dinner</div>
+                                        <div class="text-sm text-gray-600 mb-1">${getTravelStyleRestaurant(formData.travelStyle)}</div>
+                                        <div class="text-sm text-gray-500 mb-2">Local • Entertainment district</div>
+                                        <div class="font-semibold text-gray-900">$${getTravelStyleDinnerCost(formData.travelStyle, totalBudget).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('itineraryContent').innerHTML = itineraryHTML;
+            
+            // Reinitialize Lucide icons for new content
+            lucide.createIcons();
+        }
+
+        function showDay(day) {
+            // Hide all days
+            document.querySelectorAll('.day-content').forEach(dayEl => {
+                dayEl.classList.add('hidden');
+            });
+            
+            // Show selected day
+            document.getElementById(`day${day}`).classList.remove('hidden');
+            
+            // Update day navigation
+            document.querySelectorAll('#dayNavigation button').forEach(btn => {
+                btn.classList.remove('bg-blue-100', 'text-blue-700', 'border-blue-200');
+                btn.classList.add('hover:bg-gray-100', 'text-gray-700');
+            });
+            
+            event.target.closest('button').classList.add('bg-blue-100', 'text-blue-700', 'border-blue-200');
+            event.target.closest('button').classList.remove('hover:bg-gray-100', 'text-gray-700');
+            
+            currentDay = day;
+        }
+
+        function getThemeForDay(dayIndex, totalDays) {
+            if (dayIndex === 1) return "Arrival & City Orientation";
+            if (dayIndex === totalDays) return "Departure Day";
+            
+            const themes = ["Cultural Exploration", "Culinary Adventure", "Natural Wonders", "City Discovery"];
+            return themes[(dayIndex - 2) % themes.length];
+        }
+
+        function getActivityForInterest(interest, timeOfDay) {
+            const activities = {
+                culture: {
+                    morning: "Museum & Historical Site Visit",
+                    afternoon: "Cultural Heritage Tour"
+                },
+                food: {
+                    morning: "Local Food Market Tour",
+                    afternoon: "Cooking Class Experience"
+                },
+                nature: {
+                    morning: "Nature Walk & Scenic Views",
+                    afternoon: "Outdoor Adventure Activity"
+                },
+                nightlife: {
+                    morning: "City Walking Tour",
+                    afternoon: "Local Entertainment District"
+                },
+                adventure: {
+                    morning: "Adventure Sports Activity",
+                    afternoon: "Extreme Activity Experience"
+                },
+                relaxation: {
+                    morning: "Spa & Wellness Session",
+                    afternoon: "Relaxing Park Visit"
+                }
+            };
+            
+            return activities[interest]?.[timeOfDay] || "Local Experience";
+        }
+
+        function getTravelStyleRestaurant(style) {
+            const restaurants = {
+                budget: "Local Eatery",
+                balanced: "Popular Restaurant",
+                luxury: "Fine Dining Restaurant"
+            };
+            return restaurants[style] || "Popular Restaurant";
+        }
+
+        function getTravelStyleDinnerCost(style, totalBudget) {
+            const multipliers = {
+                budget: 0.03,
+                balanced: 0.05,
+                luxury: 0.08
+            };
+            return Math.round(totalBudget * (multipliers[style] || 0.05));
+        }
+
+        function shareItinerary() {
+            if (navigator.share) {
+                navigator.share({
+                    title: `${formData.destination} Trip Itinerary`,
+                    text: `Check out my ${Math.ceil((new Date(formData.endDate) - new Date(formData.startDate)) / (1000 * 60 * 60 * 24))}-day trip to ${formData.destination}!`,
+                    url: window.location.href,
+                });
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                alert('Link copied to clipboard!');
+            }
+        }
+
+        function exportToPDF() {
+            alert('PDF export feature coming soon! For now, you can print this page using Ctrl+P (Cmd+P on Mac)');
+        }
+
+        // Generate AI itinerary content
+        function generateAIItineraryContent(aiItinerary, duration, totalBudget, startDate) {
+            let itineraryHTML = '';
+            
+            for (let i = 0; i < duration; i++) {
+                const day = aiItinerary.dailyItinerary[i];
+                const isVisible = i === currentDay - 1 ? '' : 'hidden';
+                
+                itineraryHTML += `
+                    <div id="day${i + 1}" class="day-content ${isVisible}">
+                        <div class="card">
+                            <div class="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-gray-900">Day ${day.day}</h2>
+                                    <p class="text-gray-600">${day.date} • ${day.theme}</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm text-gray-500">Daily Budget</div>
+                                    <div class="font-semibold">$${Math.round(totalBudget * 0.15 / duration).toLocaleString()}</div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i data-lucide="camera" class="h-5 w-5 mr-2"></i>
+                                    Activities
+                                </h3>
+                                
+                                ${day.activities.map(activity => `
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="flex items-start justify-between">
+                                            <div class="flex-1">
+                                                <div class="flex items-center space-x-3 mb-2">
+                                                    <div class="bg-blue-100 text-blue-600 px-2 py-1 rounded text-sm font-medium">${activity.time}</div>
+                                                    <h4 class="font-semibold text-gray-900">${activity.activity}</h4>
+                                                </div>
+                                                <div class="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                                    <div class="flex items-center space-x-1">
+                                                        <i data-lucide="map-pin" class="h-4 w-4"></i>
+                                                        <span>${activity.location}</span>
+                                                    </div>
+                                                    <div class="flex items-center space-x-1">
+                                                        <i data-lucide="clock" class="h-4 w-4"></i>
+                                                        <span>${activity.duration}</span>
+                                                    </div>
+                                                </div>
+                                                <p class="text-sm text-gray-600">${activity.notes}</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="font-semibold text-gray-900">$${activity.cost.toLocaleString()}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            <div class="mt-6 space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i data-lucide="utensils" class="h-5 w-5 mr-2"></i>
+                                    Meals
+                                </h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="font-semibold text-gray-900 mb-2">Breakfast</div>
+                                        <div class="text-sm text-gray-600 mb-1">${day.meals.breakfast.restaurant}</div>
+                                        <div class="text-sm text-gray-500 mb-2">${day.meals.breakfast.cuisine} • ${day.meals.breakfast.location}</div>
+                                        <div class="font-semibold text-gray-900">$${day.meals.breakfast.cost.toLocaleString()}</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="font-semibold text-gray-900 mb-2">Lunch</div>
+                                        <div class="text-sm text-gray-600 mb-1">${day.meals.lunch.restaurant}</div>
+                                        <div class="text-sm text-gray-500 mb-2">${day.meals.lunch.cuisine} • ${day.meals.lunch.location}</div>
+                                        <div class="font-semibold text-gray-900">$${day.meals.lunch.cost.toLocaleString()}</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="font-semibold text-gray-900 mb-2">Dinner</div>
+                                        <div class="text-sm text-gray-600 mb-1">${day.meals.dinner.restaurant}</div>
+                                        <div class="text-sm text-gray-500 mb-2">${day.meals.dinner.cuisine} • ${day.meals.dinner.location}</div>
+                                        <div class="font-semibold text-gray-900">$${day.meals.dinner.cost.toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('itineraryContent').innerHTML = itineraryHTML;
+            
+            // Reinitialize Lucide icons for new content
+            lucide.createIcons();
+        }
+
+        // Save itinerary to Firestore
+        async function saveToFirestore(itineraryData) {
+            try {
+                const user = window.auth.currentUser;
+                if (!user) {
+                    console.log('User not authenticated, skipping Firestore save');
+                    return;
+                }
+
+                // Add user ID to the itinerary data
+                const firestoreData = {
+                    ...itineraryData,
+                    userId: user.uid,
+                    userEmail: user.email,
+                    userName: user.displayName || user.email
+                };
+
+                // Save to Firestore
+                const docRef = await window.firestoreUtils.addDoc(
+                    window.firestoreUtils.collection(window.db, 'itineraries'), 
+                    firestoreData
+                );
+
+                console.log('Itinerary saved to Firestore with ID:', docRef.id);
+                
+                // Update the local data with Firestore ID
+                firestoreData.firestoreId = docRef.id;
+                
+                return docRef.id;
+            } catch (error) {
+                console.error('Error saving to Firestore:', error);
+                // Don't throw error - localStorage save should still work
+            }
+        }
+
+        // Save itinerary to localStorage and Firestore for history
+        async function saveItineraryToHistory(aiItinerary, formData) {
+            try {
+                // Validate inputs
+                if (!aiItinerary || !formData) {
+                    console.error('Missing aiItinerary or formData');
+                    return;
+                }
+                
+                // Get existing itineraries from localStorage
+                const existingItineraries = JSON.parse(localStorage.getItem('travelItineraries') || '[]');
+                
+                // Create itinerary object for history
+                const historyItinerary = {
+                    id: Date.now().toString(),
+                    // Original user inputs
+                    userInputs: {
+                        destination: formData.destination,
+                        startDate: formData.startDate,
+                        endDate: formData.endDate,
+                        duration: formData.duration || aiItinerary.summary.duration,
+                        budget: formData.budget,
+                        travelers: formData.travelers,
+                        interests: formData.interests,
+                        accommodation: formData.accommodation,
+                        transportation: formData.transportation,
+                        activities: formData.activities,
+                        dietaryRestrictions: formData.dietaryRestrictions,
+                        accessibility: formData.accessibility,
+                        specialRequests: formData.specialRequests
+                    },
+                    // Processed data for display
+                    destination: formData.destination,
+                    duration: aiItinerary.summary.duration,
+                    budget: formData.budget,
+                    travelStyle: formData.interests || 'Adventure',
+                    groupSize: formData.travelers,
+                    startDate: formData.startDate,
+                    endDate: formData.endDate,
+                    createdAt: new Date().toISOString(),
+                    itinerary: (aiItinerary.dailyItinerary || []).map(day => ({
+                        day: day.day,
+                        activities: (day.activities || []).map(activity => ({
+                            name: activity.name,
+                            description: activity.description,
+                            time: activity.time,
+                            cost: activity.cost,
+                            type: activity.type || 'activity'
+                        })),
+                        meals: day.meals,
+                        accommodation: day.accommodation,
+                        totalCost: day.totalCost
+                    })),
+                    summary: aiItinerary.summary || {
+                        destination: formData.destination,
+                        duration: formData.duration || 1,
+                        totalBudget: formData.budget || 1000
+                    }
+                };
+                
+                // Add to beginning of array (newest first)
+                existingItineraries.unshift(historyItinerary);
+                
+                // Keep only last 50 itineraries to prevent localStorage bloat
+                if (existingItineraries.length > 50) {
+                    existingItineraries.splice(50);
+                }
+                
+                // Save back to localStorage
+                localStorage.setItem('travelItineraries', JSON.stringify(existingItineraries));
+                
+                // Save to Firestore if user is authenticated
+                if (window.auth.currentUser) {
+                    await saveToFirestore(historyItinerary);
+                }
+                
+                console.log('Itinerary saved to history:', historyItinerary.destination);
+            } catch (error) {
+                console.error('Failed to save itinerary to history:', error);
+            }
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            generateItinerary();
+        });
+    </script>
+</body>
+</html>

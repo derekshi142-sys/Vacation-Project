@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - TravelAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 24px; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2 cursor-pointer" onclick="window.location.href='index.html'">
+                    <div class="bg-blue-600 p-2 rounded-lg">
+                        <i data-lucide="plane" class="h-6 w-6 text-white"></i>
+                    </div>
+                    <span class="text-xl font-bold text-gray-900">TravelAI</span>
+                </div>
+                
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                    <a href="plan.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Plan Trip</a>
+                    <a href="pricing.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Pricing</a>
+                    <a href="about.html" class="text-blue-600 bg-blue-50 px-3 py-2 rounded-md text-sm font-medium">About</a>
+                    <a href="login.html" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Login</a>
+                </nav>
+                
+                <div class="hidden md:flex items-center">
+                    <button onclick="window.location.href='plan.html'" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                        Start Planning
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="bg-white py-20">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">We're Revolutionizing Travel Planning</h1>
+                <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">Born from frustration with expensive travel agencies and time-consuming planning, TravelAI uses artificial intelligence to create perfect vacations in minutes, not weeks.</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button onclick="window.location.href='plan.html'" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">Try It Free</button>
+                    <button onclick="window.location.href='pricing.html'" class="bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors duration-200">See Pricing</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="py-16 bg-blue-600 text-white">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                    <div class="text-center">
+                        <div class="text-3xl md:text-4xl font-bold mb-2">200+</div>
+                        <div class="text-blue-200">Monthly Users</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl md:text-4xl font-bold mb-2">90%</div>
+                        <div class="text-blue-200">Cost Savings</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl md:text-4xl font-bold mb-2">2 hrs</div>
+                        <div class="text-blue-200">Avg Planning Time</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl md:text-4xl font-bold mb-2">50+</div>
+                        <div class="text-blue-200">Destinations</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mission Section -->
+        <section class="py-20 bg-white">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-6">Our Mission</h2>
+                    <p class="text-xl text-gray-600 leading-relaxed">To make incredible travel experiences accessible to everyone by eliminating the time, cost, and complexity of vacation planning. We believe everyone deserves to explore the world without the stress of planning.</p>
+                </div>
+
+                <div class="bg-gray-50 rounded-2xl p-8 md:p-12">
+                    <div class="flex items-center space-x-4 mb-6">
+                        <i data-lucide="target" class="h-10 w-10 text-blue-600"></i>
+                        <h3 class="text-2xl font-bold text-gray-900">The Problem We're Solving</h3>
+                    </div>
+                    <div class="space-y-4 text-gray-700">
+                        <p>Traditional travel planning is broken. Travel agencies charge 10-20% of your vacation budget, take weeks to respond, and often suggest generic, overpriced packages.</p>
+                        <p>DIY planning means spending countless hours researching flights, hotels, restaurants, and activities, often missing hidden gems and making costly mistakes with timing and logistics.</p>
+                        <p>We built TravelAI to give you the best of both worlds: expert-level planning at a fraction of the cost, delivered in minutes instead of weeks.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Values Section -->
+        <section class="py-20 bg-gray-50">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Our Values</h2>
+                    <p class="text-xl text-gray-600">The principles that guide everything we do</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="card">
+                        <div class="text-blue-600 mb-4">
+                            <i data-lucide="zap" class="h-8 w-8"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Speed & Efficiency</h3>
+                        <p class="text-gray-600">We believe vacation planning shouldn't take weeks. Our AI delivers complete itineraries in minutes, not days.</p>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="text-blue-600 mb-4">
+                            <i data-lucide="heart" class="h-8 w-8"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Personalization</h3>
+                        <p class="text-gray-600">Every traveler is unique. Our AI understands your preferences and creates experiences tailored just for you.</p>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="text-blue-600 mb-4">
+                            <i data-lucide="shield" class="h-8 w-8"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Transparency</h3>
+                        <p class="text-gray-600">No hidden fees or markups. You pay a tiny fraction of your budget for planning, and we're upfront about every cost.</p>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="text-blue-600 mb-4">
+                            <i data-lucide="award" class="h-8 w-8"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Quality</h3>
+                        <p class="text-gray-600">We don't just generate lists. Our itineraries include realistic timing, local insights, and backup plans.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Team Section -->
+        <section class="py-20 bg-white">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Meet Our Team</h2>
+                    <p class="text-xl text-gray-600">Travel enthusiasts and tech experts working to transform your vacation experience</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="card text-center">
+                        <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=300&h=300&fit=crop&crop=face" alt="Sarah Chen" class="w-24 h-24 rounded-full mx-auto mb-4 object-cover">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-1">Sarah Chen</h3>
+                        <p class="text-blue-600 font-medium mb-3">CEO & Co-founder</p>
+                        <p class="text-gray-600 text-sm">Former travel industry executive with 15 years at Expedia. Passionate about making travel accessible to everyone.</p>
+                    </div>
+                    
+                    <div class="card text-center">
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&crop=face" alt="Michael Rodriguez" class="w-24 h-24 rounded-full mx-auto mb-4 object-cover">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-1">Michael Rodriguez</h3>
+                        <p class="text-blue-600 font-medium mb-3">CTO & Co-founder</p>
+                        <p class="text-gray-600 text-sm">AI researcher from Stanford. Built recommendation systems at Google before founding TravelAI.</p>
+                    </div>
+                    
+                    <div class="card text-center">
+                        <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&h=300&fit=crop&crop=face" alt="Emily Johnson" class="w-24 h-24 rounded-full mx-auto mb-4 object-cover">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-1">Emily Johnson</h3>
+                        <p class="text-blue-600 font-medium mb-3">Head of Product</p>
+                        <p class="text-gray-600 text-sm">Product manager who's planned 100+ trips. Obsessed with creating delightful user experiences.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How We're Different -->
+        <section class="py-20 bg-gray-50">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">How We're Different</h2>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full bg-white rounded-lg shadow-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-4 text-left font-semibold text-gray-900">Feature</th>
+                                <th class="px-6 py-4 text-center font-semibold text-blue-600">TravelAI</th>
+                                <th class="px-6 py-4 text-center font-semibold text-gray-900">Travel Agencies</th>
+                                <th class="px-6 py-4 text-center font-semibold text-gray-900">DIY Planning</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-t">
+                                <td class="px-6 py-4 font-medium text-gray-900">Planning Time</td>
+                                <td class="px-6 py-4 text-center text-green-600 font-semibold">2 hours</td>
+                                <td class="px-6 py-4 text-center text-red-600">2-4 weeks</td>
+                                <td class="px-6 py-4 text-center text-red-600">20-40 hours</td>
+                            </tr>
+                            <tr class="border-t bg-gray-50">
+                                <td class="px-6 py-4 font-medium text-gray-900">Cost</td>
+                                <td class="px-6 py-4 text-center text-green-600 font-semibold">0.3-1% of budget</td>
+                                <td class="px-6 py-4 text-center text-red-600">10-20% of budget</td>
+                                <td class="px-6 py-4 text-center text-green-600">Free (but time-consuming)</td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-6 py-4 font-medium text-gray-900">Personalization</td>
+                                <td class="px-6 py-4 text-center text-green-600 font-semibold">AI-powered custom</td>
+                                <td class="px-6 py-4 text-center text-yellow-600">Limited templates</td>
+                                <td class="px-6 py-4 text-center text-green-600">Full control</td>
+                            </tr>
+                            <tr class="border-t bg-gray-50">
+                                <td class="px-6 py-4 font-medium text-gray-900">Local Insights</td>
+                                <td class="px-6 py-4 text-center text-green-600 font-semibold">AI knowledge base</td>
+                                <td class="px-6 py-4 text-center text-yellow-600">Agent dependent</td>
+                                <td class="px-6 py-4 text-center text-yellow-600">Research required</td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-6 py-4 font-medium text-gray-900">Booking Support</td>
+                                <td class="px-6 py-4 text-center text-green-600 font-semibold">Optional add-on</td>
+                                <td class="px-6 py-4 text-center text-green-600">Included</td>
+                                <td class="px-6 py-4 text-center text-red-600">Do it yourself</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-20 bg-blue-600 text-white">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-6">Ready to Experience the Future of Travel Planning?</h2>
+                <p class="text-xl mb-8 text-blue-100">Join thousands of travelers who've discovered the joy of stress-free vacation planning</p>
+                <button onclick="window.location.href='plan.html'" class="bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-4 px-8 rounded-lg text-lg transition-all duration-200 transform hover:scale-105">
+                    Start Planning Free
+                </button>
+                <p class="text-blue-200 text-sm mt-4">No credit card required • Free draft itinerary • Ready in minutes</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-4 cursor-pointer" onclick="window.location.href='index.html'">
+                        <div class="bg-blue-600 p-2 rounded-lg">
+                            <i data-lucide="plane" class="h-6 w-6 text-white"></i>
+                        </div>
+                        <span class="text-xl font-bold">TravelAI</span>
+                    </div>
+                    <p class="text-gray-300 mb-6 max-w-md">Your trip, planned in minutes. Experience stress-free travel with AI-powered itinerary generation that saves you time and money.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="index.html" class="text-gray-300 hover:text-white transition-colors">Home</a></li>
+                        <li><a href="plan.html" class="text-gray-300 hover:text-white transition-colors">Plan Trip</a></li>
+                        <li><a href="pricing.html" class="text-gray-300 hover:text-white transition-colors">Pricing</a></li>
+                        <li><a href="about.html" class="text-gray-300 hover:text-white transition-colors">About</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact</h3>
+                    <p class="text-gray-300">support@travelai.com</p>
+                    <p class="text-gray-300">San Francisco, CA</p>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center">
+                <p class="text-gray-400 text-sm">© 2024 TravelAI. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

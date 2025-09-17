@@ -57,9 +57,9 @@ const Header = () => {
           <div className="hidden md:flex items-center space-x-4 relative">
             <Link to="/plan" className="btn-primary">Start Planning</Link>
             {!user ? (
-              <a href="/login.html" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
+              <Link to="/login" className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium">
                 Login
-              </a>
+              </Link>
             ) : (
               <div className="relative">
                 <button
@@ -82,13 +82,9 @@ const Header = () => {
                       <UserIcon className="w-4 h-4 text-gray-500" />
                       <span>Signed in</span>
                     </div>
-                    <a
-                      href="/history.html"
-                      className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setShowProfileMenu(false)}
-                    >
+                    <Link to="/my-trips" className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100" onClick={() => setShowProfileMenu(false)}>
                       My Trips
-                    </a>
+                    </Link>
                     <button
                       onClick={async () => { await signOut(auth); setShowProfileMenu(false); }}
                       className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
@@ -139,10 +135,10 @@ const Header = () => {
                 Start Planning
               </Link>
               {!user ? (
-                <a href="/login.html" className="block w-full text-center mt-3 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-100"
+                <Link to="/login" className="block w-full text-center mt-3 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-100"
                    onClick={() => setIsMenuOpen(false)}>
                   Login
-                </a>
+                </Link>
               ) : (
                 <div className="mt-3 px-3 py-2 border-t">
                   <div className="flex items-center space-x-3 mb-2">
@@ -155,9 +151,9 @@ const Header = () => {
                       {user.displayName || user.email}
                     </div>
                   </div>
-                  <a href="/history.html" className="block text-sm text-gray-700 py-2 hover:text-primary-600" onClick={() => setIsMenuOpen(false)}>
+                  <Link to="/my-trips" className="block text-sm text-gray-700 py-2 hover:text-primary-600" onClick={() => setIsMenuOpen(false)}>
                     My Trips
-                  </a>
+                  </Link>
                   <button
                     className="w-full text-left text-sm text-gray-700 py-2 hover:text-primary-600"
                     onClick={async () => { await signOut(auth); setIsMenuOpen(false); }}
