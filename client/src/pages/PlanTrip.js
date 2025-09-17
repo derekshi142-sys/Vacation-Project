@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 // Firebase imports
 import { auth, db } from '../firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const PlanTrip = () => {
@@ -121,7 +121,7 @@ const PlanTrip = () => {
         customActivities: formData.customActivities || '',
         
         // Metadata
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
         testMode: true,
         status: 'pending'
       };

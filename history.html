@@ -387,7 +387,7 @@
 
                 // Query itineraries for the current user
                 const q = window.firestoreUtils.query(
-                    window.firestoreUtils.collection(window.db, 'itineraries'),
+                    window.firestoreUtils.collection(window.db, 'user-inputs-test'),
                     window.firestoreUtils.where('userId', '==', user.uid),
                     window.firestoreUtils.orderBy('createdAt', 'desc')
                 );
