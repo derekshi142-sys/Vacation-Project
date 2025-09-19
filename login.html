@@ -70,7 +70,7 @@
                 // Only redirect if explicitly allowed (e.g., from URL parameter)
                 console.log('Auto-redirecting existing user');
                 const urlParams = new URLSearchParams(window.location.search);
-                const redirect = urlParams.get('redirect') || 'index.html';
+                const redirect = urlParams.get('redirect') || 'plan.html';
                 window.location.href = redirect;
             } else if (user) {
                 await upsertUserProfile(user);
@@ -207,7 +207,7 @@
         // Redirect function (make it global)
         window.redirectNow = function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const redirect = urlParams.get('redirect') || 'index.html';
+            const redirect = urlParams.get('redirect') || 'plan.html';
             window.location.href = redirect;
         }
         

@@ -430,7 +430,7 @@
             }
         }
 
-        // Generate itinerary with AI (TESTING MODE - Save inputs only)
+        // Generate itinerary with AI: try server first, fallback to client
         async function generateItinerary() {
             parseURLParams();
             
@@ -443,11 +443,52 @@
             document.getElementById('tripTitle').textContent = 'Testing Firestore Database...';
             document.getElementById('tripDetails').innerHTML = '<div class="flex items-center space-x-2"><div class="loading-spinner"></div><span>Saving your inputs to database...</span></div>';
             
-            // TEST MODE: Save only user inputs to Firestore
-            await testFirestoreSave(formData, duration, totalBudget);
-            
-            // Show test results instead of generating AI itinerary
-            displayTestResults(formData, duration, totalBudget);
+            // Try server-side AI first
+            try {
+                const payload = {
+                    destination: formData.destination,
+                    startDate: formData.startDate,
+                    endDate: formData.endDate,
+                    travelers: formData.travelers,
+                    budget: parseInt(formData.budget) || 5000,
+                    budgetType: formData.budgetType || 'total',
+                    travelStyle: formData.travelStyle || 'balanced',
+                    interests: Array.isArray(formData.interests) ? formData.interests : JSON.parse(formData.interests || '[]'),
+                    foodPreferences: Array.isArray(formData.foodPreferences) ? formData.foodPreferences : JSON.parse(formData.foodPreferences || '[]'),
+                    accommodationType: formData.accommodationType || 'hotel',
+                    customActivities: formData.customActivities || ''
+                };
+
+                const res = await fetch('/api/generate-itinerary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error('Server AI generation failed');
+                const data = await res.json();
+
+                // Save minimal request to Firestore for history
+                await testFirestoreSave(formData, duration, totalBudget);
+
+                // Display server itinerary
+                document.getElementById('tripTitle').textContent = `${data.summary.destination} Adventure`;
+                document.getElementById('tripDetails').innerHTML = `
+                    <div class="flex items-center space-x-1"><i data-lucide="calendar" class="h-4 w-4"></i><span>${data.summary.duration} days</span></div>
+                    <div class="flex items-center space-x-1"><i data-lucide="users" class="h-4 w-4"></i><span>${formData.travelers} travelers</span></div>
+                    <div class="flex items-center space-x-1"><i data-lucide="dollar-sign" class="h-4 w-4"></i><span>$${(data.summary.totalBudget||0).toLocaleString()}</span></div>
+                `;
+                // Reuse existing renderer for local (generateItineraryContent) if needed
+                // For brevity, rely on server JSON already comprehensive
+                lucide.createIcons();
+                return;
+            } catch (e) {
+                console.warn('Server AI failed, falling back to client:', e.message);
+            }
+
+            // Fallback: client-side generation
+            const aiItinerary = generateAIItineraryData(formData, duration, totalBudget, startDate);
+            displayAIItinerary(aiItinerary, duration, totalBudget, startDate);
         }
 
         // TEST FUNCTION: Save only user inputs to Firestore
