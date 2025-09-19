@@ -38,7 +38,7 @@ const generateItinerary = async (req, res) => {
       return res.status(400).json({ error: 'Invalid trip duration' });
     }
 
-    // Create AI prompt
+// Create AI prompt
     const prompt = `Create a detailed travel itinerary for the following trip:
 
 Destination: ${destination}
@@ -115,29 +115,42 @@ Format the response as a detailed JSON object with the following structure:
 
 Make sure the itinerary is realistic, well-paced, and accounts for travel time between locations. Include specific restaurant and activity names where possible.`;
 
-    // For demo purposes, create a structured response without calling OpenAI
-    // In production, uncomment the OpenAI call below
-    
-    /*
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert travel planner with extensive knowledge of destinations worldwide. Create detailed, realistic itineraries that balance must-see attractions with local experiences. Always consider practical factors like travel time, opening hours, and realistic pacing."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 4000
-    });
-    */
+    // Try OpenAI first (server-side only)
+    let itineraryData;
+    try {
+      const model = process.env.OPENAI_MODEL || 'gpt-4o';
+      const completion = await openai.chat.completions.create({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are an expert travel planner with extensive knowledge of destinations worldwide. Create detailed, realistic itineraries that balance must-see attractions with local experiences. Always consider practical factors like travel time, opening hours, and realistic pacing.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 4000,
+        response_format: { type: 'json_object' }
+      });
 
-    // Demo response structure
-    const itineraryData = {
+      const content = completion.choices?.[0]?.message?.content || '';
+      try {
+        itineraryData = JSON.parse(content);
+      } catch (_) {
+        // If the model did not return strict JSON, attempt to extract JSON
+        const start = content.indexOf('{');
+        const end = content.lastIndexOf('}');
+        if (start !== -1 && end !== -1) {
+          itineraryData = JSON.parse(content.slice(start, end + 1));
+        }
+      }
+    } catch (e) {
+      console.warn('OpenAI generation failed, falling back to demo itinerary:', e?.message);
+    }
+
+    // Fallback demo response structure
+    if (!itineraryData) itineraryData = {
       summary: {
         destination: destination,
         duration: duration,
