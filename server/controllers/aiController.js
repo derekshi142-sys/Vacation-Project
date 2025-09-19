@@ -1,6 +1,11 @@
 const OpenAI = require('openai');
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+try {
+  const local = require('../local-secret');
+  if (local && local.OPENAI_API_KEY) OPENAI_API_KEY = local.OPENAI_API_KEY;
+} catch (_) {}
+const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 async function askAI(req, res) {
   try {
