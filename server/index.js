@@ -23,6 +23,7 @@ app.use(limiter);
 app.use('/api/itinerary', require('./routes/itinerary'));
 app.use('/api/maps', require('./routes/maps'));
 app.use('/api/pricing', require('./routes/pricing'));
+app.use('/api/ai', require('./routes/ai'));
 
 // Handle itinerary generation at the correct endpoint
 app.post('/api/generate-itinerary', require('./controllers/itineraryController').generateItinerary);

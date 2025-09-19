@@ -268,6 +268,18 @@
                             <div class="flex flex-wrap items-center space-x-4 text-gray-600" id="tripDetails">
                                 <!-- Trip details will be populated here -->
                             </div>
+                            <!-- Normal AI section -->
+                            <div class="mt-6">
+                                <h2 class="text-xl font-semibold mb-3">Ask AI (General)</h2>
+                                <div class="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                                    <textarea id="aiPrompt" class="w-full border border-gray-300 rounded-md p-2" rows="3" placeholder="Ask anything..."></textarea>
+                                    <div class="flex items-center space-x-3">
+                                        <button id="askAiBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">Ask AI</button>
+                                        <span id="aiStatus" class="text-sm text-gray-500"></span>
+                                    </div>
+                                    <div id="aiAnswer" class="prose max-w-none text-gray-900"></div>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="flex space-x-3">
@@ -443,54 +455,9 @@
             document.getElementById('tripTitle').textContent = 'Testing Firestore Database...';
             document.getElementById('tripDetails').innerHTML = '<div class="flex items-center space-x-2"><div class="loading-spinner"></div><span>Saving your inputs to database...</span></div>';
             
-            // Try server-side AI first
-            try {
-                const payload = {
-                    destination: formData.destination,
-                    startDate: formData.startDate,
-                    endDate: formData.endDate,
-                    travelers: formData.travelers,
-                    budget: parseInt(formData.budget) || 5000,
-                    budgetType: formData.budgetType || 'total',
-                    travelStyle: formData.travelStyle || 'balanced',
-                    interests: Array.isArray(formData.interests) ? formData.interests : JSON.parse(formData.interests || '[]'),
-                    foodPreferences: Array.isArray(formData.foodPreferences) ? formData.foodPreferences : JSON.parse(formData.foodPreferences || '[]'),
-                    accommodationType: formData.accommodationType || 'hotel',
-                    customActivities: formData.customActivities || ''
-                };
-
-                const isLocal = ['localhost','127.0.0.1'].includes(window.location.hostname);
-                const apiBase = (isLocal && window.location.port === '3000') ? 'http://localhost:5000' : '';
-                const res = await fetch(`${apiBase}/api/generate-itinerary`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!res.ok) throw new Error('Server AI generation failed');
-                const data = await res.json();
-
-                // Save minimal request to Firestore for history
-                await testFirestoreSave(formData, duration, totalBudget);
-
-                // Display server itinerary
-                document.getElementById('tripTitle').textContent = `${data.summary.destination} Adventure`;
-                document.getElementById('tripDetails').innerHTML = `
-                    <div class="flex items-center space-x-1"><i data-lucide="calendar" class="h-4 w-4"></i><span>${data.summary.duration} days</span></div>
-                    <div class="flex items-center space-x-1"><i data-lucide="users" class="h-4 w-4"></i><span>${formData.travelers} travelers</span></div>
-                    <div class="flex items-center space-x-1"><i data-lucide="dollar-sign" class="h-4 w-4"></i><span>$${(data.summary.totalBudget||0).toLocaleString()}</span></div>
-                `;
-                // Reuse existing renderer for local (generateItineraryContent) if needed
-                // For brevity, rely on server JSON already comprehensive
-                lucide.createIcons();
-                return;
-            } catch (e) {
-                console.warn('Server AI failed, falling back to client:', e.message);
-            }
-
-            // Fallback: client-side generation
-            const aiItinerary = generateAIItineraryData(formData, duration, totalBudget, startDate);
-            displayAIItinerary(aiItinerary, duration, totalBudget, startDate);
+            // TEST MODE: do not call server AI, just save and display test results
+            await testFirestoreSave(formData, duration, totalBudget);
+            displayTestResults(formData, duration, totalBudget);
         }
 
         // TEST FUNCTION: Save only user inputs to Firestore
@@ -1519,6 +1486,37 @@
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
             generateItinerary();
+
+            // Hook up Normal AI section
+            const askBtn = document.getElementById('askAiBtn');
+            if (askBtn) {
+                askBtn.addEventListener('click', async () => {
+                    const prompt = (document.getElementById('aiPrompt')?.value || '').trim();
+                    const status = document.getElementById('aiStatus');
+                    const answerDiv = document.getElementById('aiAnswer');
+                    if (!prompt) return;
+                    status.textContent = 'Asking AI...';
+                    answerDiv.textContent = '';
+                    try {
+                        const hostname = window.location.hostname;
+                        const port = window.location.port;
+                        let base = '';
+                        if ((hostname === 'localhost' || hostname === '127.0.0.1') && port === '3000') base = 'http://localhost:5000';
+                        const res = await fetch(`${base}/api/ai/ask`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ prompt })
+                        });
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const data = await res.json();
+                        answerDiv.textContent = data.answer || 'No answer';
+                        status.textContent = '';
+                    } catch (e) {
+                        status.textContent = 'Failed to ask AI';
+                        console.error(e);
+                    }
+                });
+            }
         });
     </script>
 </body>
