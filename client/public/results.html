@@ -502,15 +502,11 @@
                 document.getElementById('tripDetails').innerHTML = detailsHTML;
 
                 // Decide budget breakdown percents (default 80% to activities unless user specifies in custom steps)
-                const percents = computeBudgetPercents([formData.customStep1, formData.customStep2, formData.customStep3].filter(Boolean).join(' \n'));
+                const percents = computeBudgetPercents([formData.customStep1, formData.customStep2, formData.customStep3].filter(Boolean).join(' \\n'));
 
                 // Show plain-text itinerary
                 const textBlock = `
-                    <div class=\"card\">
-                        <h3 class=\"text-lg font-semibold text-gray-900 mb-3\">AI Trip Plan</h3>
-                        <div class=\"text-gray-800 whitespace-pre-wrap leading-relaxed\">${content.replace(/</g,'&lt;')}</div>
-                    </div>
-                `;
+                    <div class=\"card\">\n                        <h3 class=\"text-lg font-semibold text-gray-900 mb-3\">AI Trip Plan</h3>\n                        <div class=\"text-gray-800 whitespace-pre-wrap leading-relaxed\">${content.replace(/</g,'&lt;')}</div>\n                    </div>\n                `;
                 document.getElementById('itineraryContent').innerHTML = textBlock;
                 // Render budget breakdown using percents
                 renderBudgetBreakdown(totalBudget, percents);
